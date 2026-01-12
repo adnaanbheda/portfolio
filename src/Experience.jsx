@@ -3,12 +3,9 @@ import Himalayan from './Himalayan'
 import StandingDesk from './StandingDesk'
 import Monitor from './Monitor'
 import Speakers from './Speakers'
-import Chair from './Chair'
-import { useControls } from 'leva'
 
 export default function Experience()
 {   
-    const { x, y } = useControls({ x: 0, y: 0 })
     return <>
 
         <color args={ [ '#241a1a' ] } attach="background" />

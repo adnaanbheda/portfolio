@@ -1,6 +1,5 @@
 import React from 'react'
 import { Html, useGLTF } from '@react-three/drei'
-import { useControls } from 'leva'
 
 export default function Monitor(props)
 {
