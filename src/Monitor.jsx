@@ -8,7 +8,7 @@ export default function Monitor(props)
     return <primitive object={ scene } { ...props }>
         <Html wrapperClass='htmlScreen' position={[-0.02, 0.28,-0.12]} rotation={[0, -Math.PI, 0]} scale={0.3} distanceFactor={1} transform occlude>
             <iframe 
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ" 
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=0&loop=1&playlist=dQw4w9WgXcQ" 
                 width="560" 
                 height="315"
                 frameBorder="0" 
