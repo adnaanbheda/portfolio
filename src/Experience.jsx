@@ -33,7 +33,7 @@ export default function Experience()
             <group>
                 <StandingDesk position={[-0.5, -1.2, 1.5]} rotation={[0, -0.75, 0]} scale={1.2} >
                     <Monitor position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
-                    <Speakers scale={0.7} />
+                    <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                 </StandingDesk>
                 {/* <Chair position={[0, -1.25, 3.2]} rotation={[0, Math.PI, 0]} scale={0.5} /> */}
             </group>
