@@ -17,8 +17,8 @@ body,
 
 .htmlScreen iframe
 {
-    width: 1024px;
-    height: 670px;
+    width: 950px;
+    height: 570px;
     border: none;
     background: #000000;
     backface-visibility: hidden;
