@@ -40,6 +40,7 @@ export default function Monitor({ iframeSrc, ...props }) {
           loading="lazy"
           title="Embedded content"
           onCanPlay={handleCanPlay}
+          sandbox="allow-same-origin allow-scripts allow-forms"
         />
       </Html>
     </primitive>
