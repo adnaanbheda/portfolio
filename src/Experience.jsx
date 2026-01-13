@@ -4,7 +4,7 @@ import Monitor from './Monitor'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
 
-export default function Experience()
+export default function Experience({ iframeSrc })
 {   
     return <>
 
@@ -32,7 +32,7 @@ export default function Experience()
                 </Text>
             <group>
                 <StandingDesk position={[-0.5, -1.2, 1.5]} rotation={[0, -0.75, 0]} scale={1.2} >
-                    <Monitor position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
+                    <Monitor iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
                     <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                 </StandingDesk>
                 {/* <Chair position={[0, -1.25, 3.2]} rotation={[0, Math.PI, 0]} scale={0.5} /> */}
