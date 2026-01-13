@@ -1,0 +1,38 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "mdcs"
+  ],
+  "plugins": ["react"],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {},
+  // Exclude react/no-unknown-property rule to allow Three.js specific attributes
+  "overrides": [ 
+    {
+      "files": ["*.jsx", "*.js"],
+      "rules": {
+        "react/no-unknown-property": "off",
+        "react/prop-types": "off",
+        "react/react-in-jsx-scope": "off"
+      }
+    }
+  ]
+}
