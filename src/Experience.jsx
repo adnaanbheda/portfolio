@@ -1,5 +1,5 @@
 import { Text, Html, ContactShadows, PresentationControls, Float, Environment, useGLTF } from '@react-three/drei'
-import Himalayan from './Himalayan'
+import Himalayan from './Himalayan450'
 import StandingDesk from './StandingDesk'
 import Monitor from './Monitor'
 import Speakers from './Speakers'
@@ -44,7 +44,6 @@ export default function Experience()
             <group>
                 <StandingDesk position-y={ - 1.2 } position-z={ 2.5 } />
                 <Monitor position={[0.30, -0.32, 2.5]} rotation={[0, Math.PI / 2, 0]} scale={0.95} />
-                <Speakers position={[x, y, 2.3]} scale={0.7} />
                 <Speakers position={[0, -0.6, 2.3]} scale={0.7} />
                 {/* <Chair position={[0, -1.25, 3.2]} rotation={[0, Math.PI, 0]} scale={0.5} /> */}
             </group>
