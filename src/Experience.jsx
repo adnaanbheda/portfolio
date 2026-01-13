@@ -32,7 +32,7 @@ export default function Experience()
 
                 <Himalayan position-y={ - 1.2 } />
                 <Text
-                    font="./bangers-v20-latin-regular.woff"
+                    font="./atkinson-hyperlegible.ttf"
                     fontSize={ 1 }
                     position={ [ 2, 0.75, 0.75 ] }
                     rotation-y={ - 1.25 }
