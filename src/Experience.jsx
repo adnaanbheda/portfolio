@@ -1,10 +1,10 @@
-import { Text, Html, ContactShadows, PresentationControls, Float, Environment, useGLTF } from '@react-three/drei'
+import { ContactShadows, Environment, PresentationControls, Text } from '@react-three/drei'
 import Himalayan from './Himalayan450'
-import StandingDesk from './StandingDesk'
 import Monitor from './Monitor'
 import Speakers from './Speakers'
+import StandingDesk from './StandingDesk'
 
-export default function Experience()
+export default function Experience({ iframeSrc })
 {   
     return <>
 
@@ -19,32 +19,22 @@ export default function Experience()
             azimuth={ [ - 1, 0.75 ] }
             damping={ 0.1 }
             snap
-        >
-            <Float rotationIntensity={ 0.4 } >  
-                <rectAreaLight
-                    width={ 2.5 }
-                    height={ 1.65 }
-                    intensity={ 65 }
-                    color={ '#ff6900' }
-                    rotation={ [ - 0.1, Math.PI, 0 ] }
-                    position={ [ 0, 0.55, - 1.15 ] }
-                />
-
-                <Himalayan position-y={ - 1.2 } />
+        > 
+                <Himalayan position={[-0.4, -1.2, -2.5]} rotation={[0, -0.65, 0]} scale={1.2} />
                 <Text
                     font="./atkinson-hyperlegible.ttf"
                     fontSize={ 1 }
-                    position={ [ 2, 0.75, 0.75 ] }
-                    rotation-y={ - 1.25 }
+                    position={ [ 3, 1, 0 ] }
+                    rotation-y={ -1.5}
                     maxWidth={ 2 }
                 >
                     Adnaan Bheda
                 </Text>
-            </Float>
             <group>
-                <StandingDesk position-y={ - 1.2 } position-z={ 2.5 } />
-                <Monitor position={[0.30, -0.32, 2.5]} rotation={[0, Math.PI / 2, 0]} scale={0.95} />
-                <Speakers position={[0, -0.6, 2.3]} scale={0.7} />
+                <StandingDesk position={[-0.5, -1.2, 1.5]} rotation={[0, -0.75, 0]} scale={1.2} >
+                    <Monitor iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
+                    <Speakers scale={0.7} />
+                </StandingDesk>
                 {/* <Chair position={[0, -1.25, 3.2]} rotation={[0, Math.PI, 0]} scale={0.5} /> */}
             </group>
 
@@ -53,7 +43,7 @@ export default function Experience()
         <ContactShadows
             position-y={ - 1.4 }
             opacity={ 0.4 }
-            scale={ 5 }
+            scale={ 10 }
             blur={ 2.4 }
         />
 
