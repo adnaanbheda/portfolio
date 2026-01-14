@@ -8,7 +8,7 @@ import './style.css'
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
 function App() {
-    const [iframeSrc, setIframeSrc] = useState('https://open.spotify.com/embed/playlist/37i9dQZEVXcZb9ak6F5ysH?utm_source=generator')
+    const [iframeSrc, setIframeSrc] = useState('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ')
 
     return (
         <>
