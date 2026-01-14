@@ -1,5 +1,6 @@
 import { ContactShadows, Environment, PresentationControls, Text } from '@react-three/drei'
-import Himalayan from './Himalayan450'
+import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
+import Level from './Level'
 import Monitor from './Monitor'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
@@ -11,6 +12,11 @@ export default function Experience({ iframeSrc })
         <color args={ [ '#241a1a' ] } attach="background" />
 
         <Environment preset="city" />
+        <EffectComposer>
+            <Bloom luminanceThreshold={0} luminanceSmoothing={0.3} height={300} />
+            <Noise opacity={0.05} />
+            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+        </EffectComposer>
         
         <PresentationControls
             global
@@ -20,21 +26,31 @@ export default function Experience({ iframeSrc })
             damping={ 0.1 }
             snap
         > 
-                <Himalayan position={[-0.4, -1.2, -2.5]} rotation={[0, -0.65, 0]} scale={1.2} />
                 <Text
-                    font="./atkinson-hyperlegible.ttf"
-                    fontSize={ 1 }
-                    position={ [ 3, 1, 0 ] }
+                    font="./jost.ttf"
+                    fontSize={ 0.5 }
+                    position={ [ 1, 1, -1 ] }
                     rotation-y={ -1.5}
                     maxWidth={ 2 }
                 >
                     Adnaan Bheda
                 </Text>
+                <Text
+                    font="./jost.ttf"
+                    fontSize={ 0.5 }
+                    position={ [ 0, 0, -1 ] }
+                    rotation-y={ -1.5}
+                    maxWidth={ 2 }
+                >
+                    Hi.
+                </Text>
             <group>
-                <StandingDesk position={[-0.5, -1.2, 1.5]} rotation={[0, -0.75, 0]} scale={1.2} >
-                    <Monitor iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
-                    <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
-                </StandingDesk>
+                    <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={[0, -1.4, 2]}>
+                        <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
+                            <Monitor iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
+                            <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
+                        </StandingDesk>
+                    </Level>
                 {/* <Chair position={[0, -1.25, 3.2]} rotation={[0, Math.PI, 0]} scale={0.5} /> */}
             </group>
 
