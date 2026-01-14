@@ -2,6 +2,7 @@ import { ContactShadows, Environment, PresentationControls, Text } from '@react-
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import Level from './Level'
 import Monitor from './Monitor'
+import SnakePlant from './SnakePlant'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
 
@@ -17,6 +18,16 @@ export default function Experience({ iframeSrc })
             <Noise opacity={0.05} />
             <Vignette eskil={false} offset={0.1} darkness={1.1} />
         </EffectComposer>
+        <Text
+            font="./jost.ttf"
+            fontSize={ 0.4 }
+            position={ [-1.5, 0.5, 0 ] }
+            rotation={[0,0,0]}
+            maxWidth={ 1 }
+        >
+            Adnaan Bheda
+            Hi.
+        </Text>
         
         <PresentationControls
             global
@@ -26,27 +37,10 @@ export default function Experience({ iframeSrc })
             damping={ 0.1 }
             snap
         > 
-                <Text
-                    font="./jost.ttf"
-                    fontSize={ 0.5 }
-                    position={ [ 1, 1, -1 ] }
-                    rotation-y={ -1.5}
-                    maxWidth={ 2 }
-                >
-                    Adnaan Bheda
-                </Text>
-                <Text
-                    font="./jost.ttf"
-                    fontSize={ 0.5 }
-                    position={ [ 0, 0, -1 ] }
-                    rotation-y={ -1.5}
-                    maxWidth={ 2 }
-                >
-                    Hi.
-                </Text>
             <group>
                     <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={[0, -1.4, 2]}>
                         <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
+                            <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />
                             <Monitor iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
                             <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                         </StandingDesk>
