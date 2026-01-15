@@ -67,7 +67,7 @@ export default function Experience({ iframeSrc })
             </Text>
             <group>
                 <Svg position={[-0.35, -0.9, 0]} onClick={()=>open("https://linkedin.com/in/adnaanb")} src={linkedinSvg} alt="LinkedIn" scale={0.001} />
-                <Svg position={[-0.65, -0.9, 0]} onClick={()=>open("https://www.icloud.com/iclouddrive/0d5zhG8EZFpV1_LlX4Fl1V6hw#Adnaan_Bheda_CV")} src={resumeSvg} alt="Resume" scale={0.001} />
+                <Svg position={[-0.65, -0.9, 0]} onClick={()=>open("/cv.pdf")} src={resumeSvg} alt="Resume" scale={0.001} />
             </group>
         </group>
         
