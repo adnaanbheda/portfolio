@@ -1,9 +1,10 @@
-import { CameraControls, ContactShadows, Environment, PresentationControls, Svg, Text } from '@react-three/drei'
+import { CameraControls, ContactShadows, PresentationControls, Sparkles, Svg, Text } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useRef } from 'react'
 import linkedinSvg from '../public/linkedin.svg'
 import resumeSvg from '../public/resume.svg'
+import Lamp from './Lamplight'
 import Level from './Level'
 import Monitor from './Monitor'
 import SnakePlant from './SnakePlant'
@@ -26,23 +27,21 @@ export default function Experience({ iframeSrc })
 
     const moveCameraToDefault = () => {
         cameraControlsRef.current?.reset(true);
-        console.log('Moving to default');
+        cameraControlsRef.current.enabled = true;
+        console.log('Moving to default');        
         camera.updateProjectionMatrix()
         camera.updateWorldMatrix(true, true);
     }
     return <>
 
         <color args={ [ '#241a1a' ] } attach="background" />
-
-        <Environment preset="city" />
         <EffectComposer>
-            <Bloom luminanceThreshold={0} luminanceSmoothing={0.3} height={300} />
-            <Noise opacity={0.05} />
+            <Bloom luminanceThreshold={0} luminanceSmoothing={0} height={300} />
+            <Noise opacity={0.09} />
             <Vignette eskil={false} offset={0.1} darkness={1.1} />
         </EffectComposer>
 
-
-        <CameraControls     
+        <CameraControls
             ref={cameraControlsRef} 
             minAzimuthAngle={-Math.PI/4}
             maxAzimuthAngle={-Math.PI/8}
@@ -57,6 +56,9 @@ export default function Experience({ iframeSrc })
             position={ [-1.5, 0.5, 0 ] }
             rotation={[0,-0.75,0]}
         >
+            <Sparkles
+                size={0.2}
+            />
             <Text
                 font="./jost.ttf"
                 fontSize={ 0.4 }
@@ -82,6 +84,7 @@ export default function Experience({ iframeSrc })
         > 
             <group onDoubleClick={moveCameraToDefault}>
                     <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={[0, -1.4, 2]}>
+                        <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
                         <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
                             <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />
                             <Monitor ref={meshRef} onPointerOver={moveToMonitor} iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
