@@ -5,11 +5,32 @@ Files: ./public/lamplight.glb [4.55MB] > /mnt/c/Users/adnaan/Desktop/portfolio-a
 */
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useRef, useLayoutEffect } from 'react';
+import gsap from 'gsap';
+
 export default function Model(props) {
   const { nodes, materials } = useGLTF('/lamplight-transformed.glb')
   const lampRef = useRef();
   const lightRef = useRef();
+  const pivotRef = useRef();
+
+  useLayoutEffect(() => {
+    if (pivotRef.current) {
+      // User requested animation:
+      // gsap.from('div', {duration: 10, rotation: '-30deg', transformOrigin: transformOriginValue, ease: 'elastic.out( 3, 0.1)', repeat: -1, delay: 2})
+
+      // Convert -30deg to radians for Three.js
+      const rotationInRadians = (-30 * Math.PI) / 180;
+
+      gsap.from(pivotRef.current.rotation, {
+        z: rotationInRadians,
+        duration: 10,
+        ease: "elastic.out(3, 0.1)",
+        repeat: -1,
+        delay: 3
+      });
+    }
+  }, []);
 
   useFrame(() => {
     if (lightRef.current && lampRef.current) {
@@ -17,18 +38,29 @@ export default function Model(props) {
     }
   })
 
+  // Swing radius (simulated cord length)
+  const swingRadius = 2;
+
   return (
     <group {...props} dispose={null}>
-
-      <mesh ref={lampRef} geometry={nodes.Bulb.geometry} material={materials.re_lamp_02} position={[0, 0.09, -0.24]}>
-        <ambientLight intensity={0.3} />
-        <spotLight
-          position={[0,2,0]}
-          castShadow
-          target={lampRef.current}
-          color={"#E7A60BFF"}
-          ref={lightRef} angle={0.5} penumbra={0.6} decay={0} intensity={3} volumetric />
+      {/* Pivot Group: Positioned higher to act as the anchor point */}
+      <group ref={pivotRef} position={[0, 0.09 + swingRadius, -0.24]}>
+        {/* Lamp Mesh: Offset downwards by the swing radius */}
+        <mesh
+          ref={lampRef}
+          geometry={nodes.Bulb.geometry}
+          material={materials.re_lamp_02}
+          position={[0, -swingRadius, 0]}
+        >
+          <ambientLight intensity={0.3} />
+          <spotLight
+            position={[0, 2, 0]}
+            castShadow
+            target={lampRef.current}
+            color={"#E7A60BFF"}
+            ref={lightRef} angle={0.6} penumbra={0.6} decay={0} intensity={3} volumetric />
         </mesh>
+      </group>
     </group>
   )
 }
