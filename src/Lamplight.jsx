@@ -24,8 +24,8 @@ export default function Model(props) {
 
       gsap.from(pivotRef.current.rotation, {
         z: rotationInRadians,
-        duration: 10,
-        ease: "elastic.out(3, 0.1)",
+        duration: 20,
+        ease: "elastic.out(2.5, 0.05)",
         repeat: -1,
         delay: 3
       });
