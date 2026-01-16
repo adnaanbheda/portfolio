@@ -1,3 +1,4 @@
+import { Loader } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { useState } from 'react'
 import ReactDOM from 'react-dom/client'
@@ -12,6 +13,7 @@ function App() {
 
     return (
         <>
+            <Loader />
             <Controls currentSrc={iframeSrc} setCurrentSrc={setIframeSrc} />
             <Canvas
                 className="r3f"
