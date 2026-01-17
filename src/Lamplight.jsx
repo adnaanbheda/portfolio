@@ -57,7 +57,7 @@ export default function Model(props) {
             position={[0, 2, 0]}
             castShadow
             target={lampRef.current}
-            color={"#E7A60BFF"}
+            color={"#E7A60B"}
             ref={lightRef} angle={0.6} penumbra={0.6} decay={0} intensity={3} volumetric />
         </mesh>
       </group>
