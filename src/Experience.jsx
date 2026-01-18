@@ -1,15 +1,16 @@
 import { CameraControls, ContactShadows, PresentationControls, Sparkles, Svg, Text } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
-import { useRef } from 'react'
+import { lazy, Suspense, useRef } from 'react'
 import linkedinSvg from '../public/linkedin.svg'
 import resumeSvg from '../public/resume.svg'
-import Lamp from './Lamplight'
-import Level from './Level'
-import Monitor from './Monitor'
-import SnakePlant from './SnakePlant'
-import Speakers from './Speakers'
-import StandingDesk from './StandingDesk'
+
+const Lamp = lazy(() => import('./Lamplight'))
+const Level = lazy(() => import('./Level'))
+const Monitor = lazy(() => import('./Monitor'))
+const SnakePlant = lazy(() => import('./SnakePlant'))
+const Speakers = lazy(() => import('./Speakers'))
+const StandingDesk = lazy(() => import('./StandingDesk'))
 
 export default function Experience({ iframeSrc })
 {   
@@ -81,7 +82,8 @@ export default function Experience({ iframeSrc })
             damping={ 0.1 }
             snap
         > 
-            <group onDoubleClick={moveCameraToDefault}>
+            <Suspense fallback={null}>
+                <group onDoubleClick={moveCameraToDefault}>
                     <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={[0, -1.4, 2]}>
                         <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
                         <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
@@ -90,8 +92,8 @@ export default function Experience({ iframeSrc })
                             <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                         </StandingDesk>
                     </Level>
-                {/* <Chair position={[0, -1.25, 3.2]} rotation={[0, Math.PI, 0]} scale={0.5} /> */}
-            </group>
+                </group>
+            </Suspense>
 
         </PresentationControls>
 

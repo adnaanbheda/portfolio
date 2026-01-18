@@ -1,10 +1,10 @@
 import { Loader } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { useState, lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import Controls from './Controls'
-const Experience = lazy(() => import('./Experience.jsx'))
 import './style.css'
+const Experience = lazy(() => import('./Experience.jsx'))
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
@@ -13,11 +13,16 @@ function App() {
 
     return (
         <>
-            <Loader />
-            <Controls currentSrc={iframeSrc} setCurrentSrc={setIframeSrc} />
-            <Canvas
-                className="r3f"
-                camera={{
+        <Loader
+            containerStyles={{ background: '#241a1a' }}
+            innerStyles={{ background: 'rgba(255, 255, 255, 0.1)' }}
+            barStyles={{ background: '#ffffff', height: '2px' }}
+            dataInterpolation={(p) => `Loading ${Math.round(p)}%`}
+        />
+        <Controls currentSrc={iframeSrc} setCurrentSrc={setIframeSrc} />
+        <Canvas
+            className="r3f"
+            camera={{
                     fov: 45,
                     near: 0.1,
                     far: 2000,
