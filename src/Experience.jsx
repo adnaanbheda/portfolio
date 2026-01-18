@@ -27,11 +27,10 @@ export default function Experience({ iframeSrc })
     const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
     
     const moveToMonitor = () => {
-        if (isMobile) return // Disable auto-zoom on mobile for better UX
-            cameraControlsRef.current.fitToBox(meshRef.current, true, 1.5)
-            cameraControlsRef.current.rotate(-2, 0, true);
-            console.log('Moving to monitor');
-            cameraControlsRef.current.enabled = false;
+        cameraControlsRef.current.fitToBox(meshRef.current, true, 1.5)
+        cameraControlsRef.current.rotate(-2, 0, true);
+        console.log('Moving to monitor');
+        cameraControlsRef.current.enabled = false;
     }
 
     const moveCameraToDefault = () => {
