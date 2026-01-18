@@ -34,7 +34,6 @@ export default function Experience({ iframeSrc })
     }
     return <>
 
-        <color args={ [ '#241a1a' ] } attach="background" />
         <EffectComposer>
             <Bloom luminanceThreshold={0} luminanceSmoothing={0} height={300} />
             <Noise opacity={0.09} />

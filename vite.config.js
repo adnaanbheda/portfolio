@@ -40,6 +40,17 @@ export default {
     {
         outDir: '../dist', // Output in the dist/ folder
         emptyOutDir: true, // Empty the folder first
-        sourcemap: true // Add sourcemap
+        sourcemap: true, // Add sourcemap
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ['react', 'react-dom'],
+                    three: ['three'],
+                    r3f: ['@react-three/fiber', '@react-three/drei'],
+                    postprocessing: ['@react-three/postprocessing']
+                }
+            }
+        },
+        chunkSizeWarningLimit: 1000
     },
 }

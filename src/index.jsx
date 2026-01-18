@@ -1,9 +1,9 @@
 import { Loader } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import Controls from './Controls'
-import Experience from './Experience.jsx'
+const Experience = lazy(() => import('./Experience.jsx'))
 import './style.css'
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))
@@ -24,7 +24,9 @@ function App() {
                     position: [-3, 1.5, 4]
                 }}
             >
-                <Experience iframeSrc={iframeSrc} />
+                <Suspense fallback={null}>
+                    <Experience iframeSrc={iframeSrc} />
+                </Suspense>
             </Canvas>
         </>
     )
