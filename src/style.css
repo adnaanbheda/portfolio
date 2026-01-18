@@ -13,6 +13,7 @@ body,
   width: 950px;
   height: 570px;
   border: none;
+  position: fixed;
   background: #000000;
   backface-visibility: hidden;
 }

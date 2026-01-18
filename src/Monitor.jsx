@@ -21,7 +21,7 @@ export default function Monitor({ iframeSrc, ...props }) {
     <primitive object={scene} {...props}>
       <Html
         wrapperClass="htmlScreen"
-        position={[0, 0.31, -0.12]}
+        position={[0.36, 0.53, -0.12]}
         rotation={[0, -Math.PI, 0]}
         scale={0.3}
         distanceFactor={1}
