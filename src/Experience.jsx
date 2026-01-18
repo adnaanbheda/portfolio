@@ -16,10 +16,18 @@ export default function Experience({ iframeSrc })
 {   
     const meshRef = useRef()
     const cameraControlsRef = useRef()
-    const { camera } = useThree()
+    const { camera, size } = useThree()
     const perspectiveCameraRef = useRef()
     
+    // Responsive logic
+    const isMobile = size.width < 768
+    const textPosition = isMobile ? [-0.25, 1.5, 0] : [-1.5, 0.5, 0]
+    const textScale = isMobile ? 0.6 : 1
+    const sceneScale = isMobile ? 0.55 : 1
+    const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
+    
     const moveToMonitor = () => {
+        if (isMobile) return // Disable auto-zoom on mobile for better UX
             cameraControlsRef.current.fitToBox(meshRef.current, true, 1.5)
             cameraControlsRef.current.rotate(-2, 0, true);
             console.log('Moving to monitor');
@@ -33,6 +41,7 @@ export default function Experience({ iframeSrc })
         camera.updateProjectionMatrix()
         camera.updateWorldMatrix(true, true);
     }
+
     return <>
 
         <EffectComposer>
@@ -43,33 +52,34 @@ export default function Experience({ iframeSrc })
 
         <CameraControls
             ref={cameraControlsRef} 
-            minAzimuthAngle={-Math.PI/4}
-            maxAzimuthAngle={-Math.PI/8}
-            minPolarAngle={0.75}
-            maxPolarAngle={1.5}
+            minAzimuthAngle={isMobile ? -Math.PI / 2 : -Math.PI / 4}
+            maxAzimuthAngle={isMobile ? Math.PI / 2 : -Math.PI / 8}
+            minPolarAngle={0.5}
+            maxPolarAngle={isMobile ? 2 : 1.5}
             rotation={ [ 0, 1, 0 ] }
             polar={ [ - 0.4, 0.2 ] }
             azimuth={ [ -2, 0.75 ] }
             infinityDolly={true} />
 
         <group                 
-            position={ [-1.5, 0.5, 0 ] }
-            rotation={[0,-0.75,0]}
+            position={ textPosition }
+            rotation={[0, -0.75, 0]}
+            scale={textScale}
         >
             <Sparkles
                 size={0.2}
             />
             <Text
                 font="./jost.ttf"
-                fontSize={ 0.4 }
+                fontSize={ isMobile ? 0.25 : 0.4 }
                 maxWidth={ 1 }
             >
                 Adnaan Bheda
                 Hi.
             </Text>
             <group>
-                <Svg position={[-0.35, -0.9, 0]} onClick={()=>open("https://linkedin.com/in/adnaanb")} src={linkedinSvg} alt="LinkedIn" scale={0.001} />
-                <Svg position={[-0.65, -0.9, 0]} onClick={()=>open("/cv.pdf")} src={resumeSvg} alt="Resume" scale={0.001} />
+                <Svg position={isMobile?[-0.5, -0.7, 0]:[-0.35, -0.9, 0]} onClick={()=>open("/cv.pdf")} src={resumeSvg} alt="Resume" scale={0.001} />
+                <Svg position={isMobile?[-0.2, -0.7, 0]:[-0.65, -0.9, 0]} onClick={()=>open("https://linkedin.com/in/adnaanb")} src={linkedinSvg} alt="LinkedIn" scale={0.001} />
             </group>
         </group>
         
@@ -83,8 +93,8 @@ export default function Experience({ iframeSrc })
             snap
         > 
             <Suspense fallback={null}>
-                <group onDoubleClick={moveCameraToDefault}>
-                    <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={[0, -1.4, 2]}>
+                <group onDoubleClick={moveCameraToDefault} scale={sceneScale} position={scenePosition}>
+                    <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
                         <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
                         <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
                             <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />
