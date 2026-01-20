@@ -5,8 +5,8 @@ Files: ./public/lamplight.glb [4.55MB] > /mnt/c/Users/adnaan/Desktop/portfolio-a
 */
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useRef, useLayoutEffect } from 'react';
 import gsap from 'gsap';
+import { useLayoutEffect, useRef } from 'react';
 
 export default function Model(props) {
   const { nodes, materials } = useGLTF('/lamplight-transformed.glb')
@@ -20,14 +20,15 @@ export default function Model(props) {
       // gsap.from('div', {duration: 10, rotation: '-30deg', transformOrigin: transformOriginValue, ease: 'elastic.out( 3, 0.1)', repeat: -1, delay: 2})
 
       // Convert -30deg to radians for Three.js
-      const rotationInRadians = (-30 * Math.PI) / 180;
+      const rotationInRadians = (10 * Math.PI) / 180;
 
       gsap.from(pivotRef.current.rotation, {
         z: rotationInRadians,
-        duration: 20,
-        ease: "elastic.out(2.5, 0.05)",
+        duration: 1,
+        transformOrigin: "top center",
+        ease: "power1.inOut",
         repeat: -1,
-        delay: 3
+        yoyo: true
       });
     }
   }, []);
