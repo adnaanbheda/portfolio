@@ -27,8 +27,8 @@ export default function Experience({ iframeSrc })
     const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
     
     const moveToMonitor = () => {
-        cameraControlsRef.current.fitToBox(meshRef.current, true, 1.5)
-        cameraControlsRef.current.rotate(-2, 0, true);
+        cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
+        cameraControlsRef.current.fitToBox(meshRef.current, true);
         console.log('Moving to monitor');
         cameraControlsRef.current.enabled = false;
     }
@@ -51,8 +51,8 @@ export default function Experience({ iframeSrc })
 
         <CameraControls
             ref={cameraControlsRef} 
-            minAzimuthAngle={isMobile ? -Math.PI / 2 : -Math.PI / 4}
-            maxAzimuthAngle={isMobile ? Math.PI / 2 : -Math.PI / 8}
+            minAzimuthAngle={-Math.PI / 2}
+            maxAzimuthAngle={Math.PI / 4}
             minPolarAngle={0.5}
             maxPolarAngle={isMobile ? 2 : 1.5}
             rotation={ [ 0, 1, 0 ] }
