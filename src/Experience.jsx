@@ -30,6 +30,11 @@ export default function Experience({ iframeSrc })
         cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
         cameraControlsRef.current.fitToBox(meshRef.current, true);
         console.log('Moving to monitor');
+        ReactGA.event({
+            category: "Navigation",
+            action: "View",
+            label: "Monitor",
+        });
         cameraControlsRef.current.enabled = false;
     }
 

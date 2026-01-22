@@ -1,4 +1,5 @@
 
+
 export default function Controls({ currentSrc, setCurrentSrc }) {
   const buttons = [
     { id: 'youtube', label: 'YouTube', src: 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ' },
@@ -12,7 +13,14 @@ export default function Controls({ currentSrc, setCurrentSrc }) {
         <button
           key={b.id}
           className={b.src === currentSrc ? 'active' : ''}
-          onClick={() => setCurrentSrc(b.src)}
+          onClick={() => {
+            setCurrentSrc(b.src)
+            ReactGA.event({
+              category: "Control",
+              action: "Click",
+              label: b.label,
+            });
+          }}
         >
           {b.label}
         </button>
