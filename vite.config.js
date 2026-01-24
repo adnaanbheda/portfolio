@@ -40,17 +40,34 @@ export default {
     {
         outDir: '../dist', // Output in the dist/ folder
         emptyOutDir: true, // Empty the folder first
-        sourcemap: true, // Add sourcemap
+        sourcemap: false, // Disable sourcemaps in production for better performance
         rollupOptions: {
             output: {
                 manualChunks: {
-                    vendor: ['react', 'react-dom'],
-                    three: ['three'],
-                    r3f: ['@react-three/fiber', '@react-three/drei'],
-                    postprocessing: ['@react-three/postprocessing']
+                    // React core
+                    'vendor-react': ['react', 'react-dom'],
+                    // Three.js core
+                    'vendor-three': ['three'],
+                    // R3F ecosystem
+                    'vendor-r3f': ['@react-three/fiber', '@react-three/drei'],
+                    // Post-processing effects
+                    'vendor-postprocessing': ['@react-three/postprocessing', '@react-spring/three'],
+                    // Analytics
+                    'vendor-analytics': ['react-ga4']
                 }
             }
         },
-        chunkSizeWarningLimit: 1000
+        // Optimize asset handling
+        assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+        chunkSizeWarningLimit: 1000,
+        // Enable minification
+        minify: 'esbuild',
+        terserOptions: {
+            compress: {
+                drop_console: true, // Remove console.logs in production
+                drop_debugger: true,
+                pure_funcs: ['console.log', 'console.info']
+            }
+        }
     },
 }
