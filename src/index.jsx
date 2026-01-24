@@ -2,20 +2,36 @@ import { Loader } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import ReactGA from 'react-ga4'
 import Controls from './Controls'
 import './style.css'
 const Experience = lazy(() => import('./Experience.jsx'))
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
-ReactGA.initialize("G-60KGGQ8MXV");
-
 function App() {
-    const [iframeSrc, setIframeSrc] = useState('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ')
+    const [iframeSrc, setIframeSrc] = useState('')
+    const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
 
     useEffect(() => {
-        ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+        // Defer Google Analytics loading
+        const loadAnalytics = async () => {
+            const ReactGA = await import('react-ga4')
+            ReactGA.default.initialize("G-60KGGQ8MXV")
+            ReactGA.default.send({ hitType: "pageview", page: window.location.pathname })
+            setAnalyticsLoaded(true)
+        }
+        
+        // Load analytics after a short delay
+        const timer = setTimeout(loadAnalytics, 2000)
+        return () => clearTimeout(timer)
+    }, [])
+    
+    // Lazy load YouTube iframe only when needed
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIframeSrc('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ')
+        }, 1000)
+        return () => clearTimeout(timer)
     }, [])
 
     return (
