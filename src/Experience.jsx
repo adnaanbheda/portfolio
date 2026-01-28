@@ -1,16 +1,15 @@
 import { CameraControls, ContactShadows, PresentationControls, Sparkles, Svg, Text } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
-import { lazy, Suspense, useRef } from 'react'
+import { useRef } from 'react'
 import linkedinSvg from '../public/linkedin.svg'
 import resumeSvg from '../public/resume.svg'
-
-const Lamp = lazy(() => import('./Lamplight'))
-const Level = lazy(() => import('./Level'))
-const Monitor = lazy(() => import('./Monitor'))
-const SnakePlant = lazy(() => import('./SnakePlant'))
-const Speakers = lazy(() => import('./Speakers'))
-const StandingDesk = lazy(() => import('./StandingDesk'))
+import Lamp from './Lamplight'
+import Level from './Level'
+import Monitor from './Monitor'
+import SnakePlant from './SnakePlant'
+import Speakers from './Speakers'
+import StandingDesk from './StandingDesk'
 
 export default function Experience({ iframeSrc })
 {   
@@ -96,7 +95,6 @@ export default function Experience({ iframeSrc })
             damping={ 0.1 }
             snap
         > 
-            <Suspense fallback={null}>
                 <group onDoubleClick={moveCameraToDefault} scale={sceneScale} position={scenePosition}>
                     <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
                         <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
@@ -107,7 +105,6 @@ export default function Experience({ iframeSrc })
                         </StandingDesk>
                     </Level>
                 </group>
-            </Suspense>
 
         </PresentationControls>
 
