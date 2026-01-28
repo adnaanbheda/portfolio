@@ -41,7 +41,7 @@ export default function Monitor({ iframeSrc, ...props }) {
           loading="lazy"
           title="Embedded content"
           onCanPlay={handleCanPlay}
-          sandbox="allow-same-origin allow-scripts allow-forms"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
           onPointerEnter={props.onPointerEnter}
         />
       </Html>
