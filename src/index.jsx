@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import Controls from './Controls'
+import Help from './Help'
 import './style.css'
 const Experience = lazy(() => import('./Experience.jsx'))
 
@@ -11,6 +12,7 @@ const root = ReactDOM.createRoot(document.querySelector('#root'))
 function App() {
     const [iframeSrc, setIframeSrc] = useState('')
     const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
+    const [zoomTrigger, setZoomTrigger] = useState(0)
 
     useEffect(() => {
         // Defer Google Analytics loading
@@ -34,6 +36,11 @@ function App() {
         return () => clearTimeout(timer)
     }, [])
 
+    const handleControlClick = (src) => {
+        setIframeSrc(src)
+        setZoomTrigger(prev => prev + 1)
+    }
+
     return (
         <>
         <Loader
@@ -42,7 +49,8 @@ function App() {
             barStyles={{ background: '#ffffff', height: '2px' }}
             dataInterpolation={(p) => `Loading ${Math.round(p)}%`}
         />
-        <Controls currentSrc={iframeSrc} setCurrentSrc={setIframeSrc} />
+        <Help />
+        <Controls currentSrc={iframeSrc} setCurrentSrc={handleControlClick} />
         <Canvas
             className="r3f"
             camera={{
@@ -53,7 +61,7 @@ function App() {
                 }}
             >
                 <Suspense fallback={null}>
-                    <Experience iframeSrc={iframeSrc} />
+                    <Experience iframeSrc={iframeSrc} zoomTrigger={zoomTrigger} />
                 </Suspense>
             </Canvas>
         </>

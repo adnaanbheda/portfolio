@@ -1,7 +1,7 @@
 import { CameraControls, ContactShadows, PresentationControls, Sparkles, Svg, Text } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import linkedinSvg from '../public/linkedin.svg'
 import resumeSvg from '../public/resume.svg'
 import Lamp from './Lamplight'
@@ -11,12 +11,18 @@ import SnakePlant from './SnakePlant'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
 
-export default function Experience({ iframeSrc })
+export default function Experience({ iframeSrc, zoomTrigger })
 {   
     const meshRef = useRef()
     const cameraControlsRef = useRef()
     const { camera, size } = useThree()
     const perspectiveCameraRef = useRef()
+    
+    useEffect(() => {
+        if (zoomTrigger > 0) {
+            moveToMonitor()
+        }
+    }, [zoomTrigger])
     
     // Responsive logic
     const isMobile = size.width < 768
@@ -29,11 +35,6 @@ export default function Experience({ iframeSrc })
         cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
         cameraControlsRef.current.fitToBox(meshRef.current, true);
         console.log('Moving to monitor');
-        ReactGA.event({
-            category: "Navigation",
-            action: "View",
-            label: "Monitor",
-        });
         cameraControlsRef.current.enabled = false;
     }
 

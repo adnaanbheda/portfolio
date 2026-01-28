@@ -1,0 +1,108 @@
+.help-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 48;
+}
+
+.help-button {
+    position: fixed;
+    right: 24px;
+    bottom: 32px;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 600 20px 'Jost', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.help-button:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.help-overlay {
+    position: fixed;
+    right: 84px;
+    bottom: 36px;
+    z-index: 49;
+    width: 280px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(16px);
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transform-origin: bottom right;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: #fff;
+}
+
+.help-overlay h3 {
+    margin: 0 0 16px;
+    font: 600 18px 'Jost', sans-serif;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+}
+
+.help-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    font: 14px 'Jost', sans-serif;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.help-item:last-child {
+    margin-bottom: 0;
+}
+
+.help-key {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    margin-right: 12px;
+    color: #fff;
+    min-width: 24px;
+    text-align: center;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .help-button {
+        top: 24px;
+        bottom: auto;
+        right: 16px;
+    }
+
+    .help-overlay {
+        top: 80px;
+        bottom: auto;
+        right: 16px;
+        width: 260px;
+        transform-origin: top right;
+    }
+}

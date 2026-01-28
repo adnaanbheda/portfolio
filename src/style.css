@@ -1,3 +1,5 @@
+@import './help.css';
+
 html,
 body,
 #root {
@@ -66,13 +68,24 @@ body,
   .controls {
     bottom: 24px;
     width: auto;
-    max-width: 90%;
+    max-width: 95%;
     padding: 6px;
-    gap: 6px;
+    gap: 8px;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .controls::-webkit-scrollbar {
+    display: none;
   }
 
   .controls button {
     padding: 8px 16px;
     font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 }
