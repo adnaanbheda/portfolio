@@ -27,7 +27,7 @@ export default function Monitor({ iframeSrc, ...props }) {
         distanceFactor={1}
         transform
         occlude
-          onPointerEnter={props.onPointerEnter}
+        onPointerOver={props.onPointerOver}
       >
         <iframe
           ref={iframeRef}
@@ -42,7 +42,7 @@ export default function Monitor({ iframeSrc, ...props }) {
           title="Embedded content"
           onCanPlay={handleCanPlay}
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-          onPointerEnter={props.onPointerEnter}
+          onPointerOver={props.onPointerOver}
         />
       </Html>
     </primitive>
