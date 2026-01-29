@@ -11,7 +11,7 @@ import SnakePlant from './SnakePlant'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
 
-export default function Experience({ iframeSrc, zoomTrigger })
+export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, isZoomed })
 {   
     const meshRef = useRef()
     const cameraControlsRef = useRef()
@@ -20,6 +20,7 @@ export default function Experience({ iframeSrc, zoomTrigger })
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             moveCameraToDefault()
+            onResetZoom?.()
         }
     });
     
@@ -28,6 +29,13 @@ export default function Experience({ iframeSrc, zoomTrigger })
             moveToMonitor()
         }
     }, [zoomTrigger])
+    
+    // Handle back button click from parent
+    useEffect(() => {
+        if (isZoomed === false && cameraControlsRef.current) {
+            moveCameraToDefault()
+        }
+    }, [isZoomed])
     
     // Responsive logic
     const isMobile = size.width < 768

@@ -13,6 +13,7 @@ function App() {
     const [iframeSrc, setIframeSrc] = useState('')
     const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
     const [zoomTrigger, setZoomTrigger] = useState(0)
+    const [isZoomed, setIsZoomed] = useState(false)
 
     useEffect(() => {
         // Defer Google Analytics loading
@@ -39,6 +40,11 @@ function App() {
     const handleControlClick = (src) => {
         setIframeSrc(src)
         setZoomTrigger(prev => prev + 1)
+        setIsZoomed(true)
+    }
+    
+    const handleResetZoom = () => {
+        setIsZoomed(false)
     }
 
     return (
@@ -51,6 +57,17 @@ function App() {
         />
         <Help />
         <Controls currentSrc={iframeSrc} setCurrentSrc={handleControlClick} />
+        
+        {/* Back button when zoomed to monitor */}
+        {isZoomed && (
+            <button 
+                className="back-button"
+                onClick={handleResetZoom}
+            >
+                ← Back
+            </button>
+        )}
+        
         <Canvas
             className="r3f"
             camera={{
@@ -61,7 +78,12 @@ function App() {
                 }}
             >
                 <Suspense fallback={null}>
-                    <Experience iframeSrc={iframeSrc} zoomTrigger={zoomTrigger} />
+                    <Experience 
+                        iframeSrc={iframeSrc} 
+                        zoomTrigger={zoomTrigger}
+                        onResetZoom={handleResetZoom}
+                        isZoomed={isZoomed}
+                    />
                 </Suspense>
             </Canvas>
         </>
