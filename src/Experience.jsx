@@ -17,6 +17,12 @@ export default function Experience({ iframeSrc, zoomTrigger })
     const cameraControlsRef = useRef()
     const { camera, size } = useThree()
     const perspectiveCameraRef = useRef()
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            moveCameraToDefault()
+        }
+    });
     
     useEffect(() => {
         if (zoomTrigger > 0) {
@@ -55,7 +61,7 @@ export default function Experience({ iframeSrc, zoomTrigger })
         </EffectComposer>
 
         <CameraControls
-            ref={cameraControlsRef} 
+            ref={cameraControlsRef}
             minAzimuthAngle={-Math.PI / 2}
             maxAzimuthAngle={Math.PI / 4}
             minPolarAngle={0.5}
