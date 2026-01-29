@@ -47,7 +47,8 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
         logicalHeight = depth; 
     } 
     
-    const pixelWidth = 1440; 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1080;
+    const pixelWidth = isMobile ? 720 : 1080;
     const SCALE_MULTIPLIER = 39; 
     
     const scale = (width / pixelWidth) * SCALE_MULTIPLIER;
@@ -55,7 +56,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
     return {
         scale,
         pixelWidth,
-        pixelHeight: (pixelWidth * logicalHeight) / width, 
+        pixelHeight: Math.round((pixelWidth * logicalHeight) / width), 
         position,
         rotation,
         visualWidth: width,
@@ -94,7 +95,6 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                           width: '100%',
                           height: '100%',
                           border: 'none',
-                          display: 'block',
                           opacity: 0.6,
                           mixBlendMode: 'screen',
                       }}
@@ -111,9 +111,9 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                           width: '100%',
                           height: '100%',
                           backgroundImage: 'url(/screen-dirt.png)',
-                          backgroundSize: 'cover', // Stretch to cover without visible seams
+                          backgroundSize: 'cover',
                           backgroundPosition: 'center',
-                          opacity: 0.1, // Slightly more visible
+                          opacity: 0.1,
                           pointerEvents: 'none',
                           mixBlendMode: 'overlay',
                       }}
