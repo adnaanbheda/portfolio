@@ -1,4 +1,4 @@
-import { Html, useGLTF } from "@react-three/drei";
+import { Html, MeshReflectorMaterial, useGLTF } from "@react-three/drei";
 import { forwardRef, useMemo, useRef } from "react";
 
 const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
@@ -16,7 +16,9 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
             pixelWidth: 1440, 
             pixelHeight: 800, 
             position: [0,0,0], 
-            rotation: [0,0,0] 
+            rotation: [0,0,0],
+            visualWidth: 1,
+            visualHeight: 1
         };
     }
 
@@ -55,7 +57,9 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
         pixelWidth,
         pixelHeight: (pixelWidth * logicalHeight) / width, 
         position,
-        rotation
+        rotation,
+        visualWidth: width,
+        visualHeight: logicalHeight
     };
   }, [nodes]);
 
@@ -74,34 +78,65 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
           <group position={[0.001, 51.2, 0.581]} rotation={[-Math.PI / 2, 0, 0]} scale={12.898}>
             <mesh geometry={nodes.screen.geometry} material={materials['Material.001']}>
               <Html
-                          transform
-                          occlude
-                          scale={scalingData.scale}
-                          position={scalingData.position}
-                          rotation={scalingData.rotation}
-                          style={{
-                              width: scalingData.pixelWidth,
-                              height: scalingData.pixelHeight,
-                              background: 'black', // Changed to black to blend better
-                              backfaceVisibility: 'hidden'
-                          }}
-                      >
-                          <iframe
-                              ref={iframeRef}
-                              src={src}
-                              style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  border: 'none',
-                                  display: 'block',
-                                  // transform: 'rotate(180deg)' // Correct orientation
-                              }}
-                              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                              loading="lazy"
-                              onCanPlay={handleCanPlay}
-                              onPointerOver={props.onPointerOver}
-                          />
-                      </Html>
+                  transform
+                  scale={scalingData.scale}
+                  position={scalingData.position}
+                  rotation={scalingData.rotation}
+                  style={{
+                      width: scalingData.pixelWidth,
+                      height: scalingData.pixelHeight,
+                  }}
+              >
+                  <iframe
+                      ref={iframeRef}
+                      src={src}
+                      style={{
+                          width: '100%',
+                          height: '100%',
+                          border: 'none',
+                          display: 'block',
+                          opacity: 0.6,
+                          mixBlendMode: 'screen',
+                      }}
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                      onCanPlay={handleCanPlay}
+                      onPointerOver={props.onPointerOver}
+                  />
+                  <div
+                      style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          backgroundImage: 'url(/screen-dirt.png)',
+                          backgroundSize: 'cover', // Stretch to cover without visible seams
+                          backgroundPosition: 'center',
+                          opacity: 0.1, // Slightly more visible
+                          pointerEvents: 'none',
+                          mixBlendMode: 'overlay',
+                      }}
+                  />
+              </Html>
+              
+              {/* Reflective Layer using MeshReflectorMaterial */}
+              <mesh position={[scalingData.position[0], scalingData.position[1], scalingData.position[2]]} rotation={scalingData.rotation}>
+                 <planeGeometry args={[scalingData.visualWidth, scalingData.visualHeight]} />
+                 <MeshReflectorMaterial
+                    blur={[300, 100]}
+                    resolution={1024}
+                    mixBlur={1}
+                    mixStrength={80} 
+                    roughness={0.1}
+                    depthScale={1.2}
+                    minDepthThreshold={0.4}
+                    maxDepthThreshold={1.4}
+                    color="white"
+                    metalness={0.9} 
+                    mirror={1}
+                 />
+              </mesh>
             </mesh>
             <mesh geometry={nodes['ug650f-b_Material_0'].geometry} material={materials['Material.001']} />
           </group>
