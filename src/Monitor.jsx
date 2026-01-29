@@ -1,51 +1,116 @@
 import { Html, useGLTF } from "@react-three/drei";
-import { useRef } from "react";
+import { forwardRef, useMemo, useRef } from "react";
 
-export default function Monitor({ iframeSrc, ...props }) {
-  const { scene } = useGLTF("monitor.glb");
+const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
+  const { nodes, materials } = useGLTF("/monitor.glb");
   const iframeRef = useRef(null);
-
+  
   const src = iframeSrc || 'https://open.spotify.com/embed/playlist/37i9dQZEVXcZb9ak6F5ysH?utm_source=generator'
+  
+  // Calculate sizing based on the screen's geometry
+  const scalingData = useMemo(() => {
+    const screenNode = nodes.screen;
+    if (!screenNode || !screenNode.geometry) {
+        return { 
+            scale: 0.1, 
+            pixelWidth: 1440, 
+            pixelHeight: 800, 
+            position: [0,0,0], 
+            rotation: [0,0,0] 
+        };
+    }
+
+    const geometry = screenNode.geometry;
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox;
+    
+    // Geometry dimensions
+    const width = box.max.x - box.min.x;
+    const height = box.max.y - box.min.y;
+    const depth = box.max.z - box.min.z;
+    
+    // Geometry Center
+    const centerX = (box.min.x + box.max.x) / 2;
+    const centerY = (box.min.y + box.max.y) / 2;
+    const centerZ = (box.min.z + box.max.z) / 2;
+
+    let rotation = [0, 0, 0];
+    let position = [centerX, centerY, centerZ + 0.02]; 
+    let logicalHeight = height;
+
+    // Detect if geometry is flat on XZ plane (common in some exports)
+    if (height < 0.01) { 
+        rotation = [Math.PI / 2, Math.PI, 0]; 
+        position = [centerX, centerY + 0.05, centerZ];
+        logicalHeight = depth; 
+    } 
+    
+    const pixelWidth = 1440; 
+    const SCALE_MULTIPLIER = 39; 
+    
+    const scale = (width / pixelWidth) * SCALE_MULTIPLIER;
+    
+    return {
+        scale,
+        pixelWidth,
+        pixelHeight: (pixelWidth * logicalHeight) / width, 
+        position,
+        rotation
+    };
+  }, [nodes]);
 
   const handleCanPlay = () => {
     if (iframeRef.current) {
       try {
         iframeRef.current.contentWindow?.postMessage({ action: 'play' }, '*');
-      } catch (e) {
-        console.log('Cross-origin iframe, autoplay handled by iframe source');
-      }
+      } catch (e) {}
     }
   };
 
   return (
-    <primitive object={scene} {...props}>
-      <Html
-        wrapperClass="htmlScreen"
-        position={[0.36, 0.53, -0.12]}
-        rotation={[0, -Math.PI, 0]}
-        scale={0.3}
-        distanceFactor={1}
-        transform
-        occlude
-        onPointerOver={props.onPointerOver}
-      >
-        <iframe
-          ref={iframeRef}
-          data-testid="embed-iframe"
-          src={src}
-          width="560"
-          height="315"
-          frameBorder="0"
-          allowFullScreen
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-          title="Embedded content"
-          onCanPlay={handleCanPlay}
-          onPointerOver={props.onPointerOver}
-        />
-      </Html>
-    </primitive>
+    <group {...props} dispose={null} ref={ref}>
+      <group rotation={[-Math.PI / 2, 0, 0]} scale={0.333}>
+        <group rotation={[Math.PI / 2, 0, 0]} scale={0.01}>
+          <group position={[0.001, 51.2, 0.581]} rotation={[-Math.PI / 2, 0, 0]} scale={12.898}>
+            <mesh geometry={nodes.screen.geometry} material={materials['Material.001']}>
+              <Html
+                          transform
+                          occlude
+                          scale={scalingData.scale}
+                          position={scalingData.position}
+                          rotation={scalingData.rotation}
+                          style={{
+                              width: scalingData.pixelWidth,
+                              height: scalingData.pixelHeight,
+                              background: 'black', // Changed to black to blend better
+                              backfaceVisibility: 'hidden'
+                          }}
+                      >
+                          <iframe
+                              ref={iframeRef}
+                              src={src}
+                              style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  border: 'none',
+                                  display: 'block',
+                                  // transform: 'rotate(180deg)' // Correct orientation
+                              }}
+                              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                              loading="lazy"
+                              onCanPlay={handleCanPlay}
+                              onPointerOver={props.onPointerOver}
+                          />
+                      </Html>
+            </mesh>
+            <mesh geometry={nodes['ug650f-b_Material_0'].geometry} material={materials['Material.001']} />
+          </group>
+        </group>
+      </group>
+    </group>
   );
-}
+});
 
-useGLTF.preload && useGLTF.preload("monitor.glb");
+export default Monitor;
+
+useGLTF.preload && useGLTF.preload("/monitor.glb");
