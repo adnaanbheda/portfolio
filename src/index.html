@@ -12,6 +12,25 @@
 
     <!-- Preload critical assets -->
     <link rel="preload" href="/jost.ttf" as="font" type="font/ttf" crossorigin>
+
+    <!--
+      The GLBs are only requested once the lazy Experience chunk has downloaded
+      and evaluated, which is three round trips deep. Preloading them here starts
+      the transfers alongside the JS instead of after it. No crossorigin attribute:
+      these are same-origin and GLTFLoader fetches them in same-origin credentials
+      mode, so adding it would mismatch the preload and double-fetch.
+    -->
+    <link rel="preload" href="/level.glb" as="fetch">
+    <link rel="preload" href="/standing_desk.glb" as="fetch">
+    <link rel="preload" href="/monitor.glb" as="fetch">
+    <link rel="preload" href="/lamplight-transformed.glb" as="fetch">
+    <link rel="preload" href="/snakeplant.glb" as="fetch">
+    <link rel="preload" href="/speakers.glb" as="fetch">
+
+    <!-- Draco decoder, needed the moment the first compressed mesh is parsed -->
+    <link rel="preload" href="/draco/draco_wasm_wrapper.js" as="fetch">
+    <link rel="preload" href="/draco/draco_decoder.wasm" as="fetch">
+
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>Adnaan Bheda</title>
 </head>

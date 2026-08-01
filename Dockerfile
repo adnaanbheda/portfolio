@@ -17,6 +17,9 @@ RUN npm run build
 # Stage 2: Serve the static files with Nginx
 FROM nginx:alpine
 
+# Serving config: gzip_static, cache headers and the model/wasm MIME types
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy the built files from the builder stage to the Nginx web directory
 COPY --from=builder /app/dist /usr/share/nginx/html
 

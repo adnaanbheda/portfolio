@@ -1,10 +1,17 @@
-import { Loader } from '@react-three/drei'
+import { Loader, useGLTF } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import Controls from './Controls'
 import Help from './Help'
 import './style.css'
+
+// Most of the GLBs are Draco-compressed. drei defaults the decoder to
+// gstatic.com, which puts a third-party DNS + TLS handshake on the critical
+// path before any mesh can be parsed. The decoder is copied into public/draco/
+// so it comes off our own origin, over the connection that is already open.
+useGLTF.setDecoderPath('/draco/')
+
 const Experience = lazy(() => import('./Experience.jsx'))
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))

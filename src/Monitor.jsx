@@ -136,7 +136,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                           left: 0,
                           width: '100%',
                           height: '100%',
-                          backgroundImage: 'url(/screen-dirt.png)',
+                          backgroundImage: 'url(/screen-dirt.webp)',
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           opacity: 0.1,

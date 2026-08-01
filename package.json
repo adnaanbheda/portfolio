@@ -16,8 +16,10 @@
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.0.0",
     "leva": "^0.10.1",
+    "playwright": "^1.62.1",
     "r3f-perf": "^7.2.3",
     "vite": "^6.2.2",
+    "vite-plugin-compression2": "^2.5.3",
     "vite-plugin-restart": "^0.4.2"
   },
   "dependencies": {
