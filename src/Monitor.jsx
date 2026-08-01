@@ -1,12 +1,28 @@
 import { Html, MeshReflectorMaterial, useGLTF } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { forwardRef, useMemo, useRef } from "react";
+
+// drei's <Html transform> converts CSS px to world units with a fixed factor of
+// 40 (see getObjectCSSMatrix: 1 / ((distanceFactor || 10) / 400)). Using it
+// exactly means `scale` maps pixelWidth 1:1 onto the target world width.
+const HTML_TRANSFORM_FACTOR = 40;
+
+// The `screen` node in monitor.glb is the whole front panel (its X extent is
+// identical to the body mesh's), so the raw bounding box includes the bezels.
+// These trim it down to the glass; tune visually if the model is swapped.
+const ACTIVE_AREA_WIDTH = 0.97;
+const ACTIVE_AREA_HEIGHT = 0.92;
+// The chin is taller than the top bezel, so the glass centre sits above the
+// panel centre. Fraction of panel height to lift the content by.
+const ACTIVE_AREA_Y_OFFSET = 0.015;
 
 const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
   const { nodes, materials } = useGLTF("/monitor.glb");
   const iframeRef = useRef(null);
-  
+  const canvasWidth = useThree((state) => state.size.width);
+
   const src = iframeSrc || 'https://open.spotify.com/embed/playlist/37i9dQZEVXcZb9ak6F5ysH?utm_source=generator'
-  
+
   // Calculate sizing based on the screen's geometry
   const scalingData = useMemo(() => {
     const screenNode = nodes.screen;
@@ -36,33 +52,34 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
     const centerY = (box.min.y + box.max.y) / 2;
     const centerZ = (box.min.z + box.max.z) / 2;
 
-    let rotation = [0, 0, 0];
-    let position = [centerX, centerY, centerZ + 0.02]; 
-    let logicalHeight = height;
+    // Detect if geometry is flat on XZ plane (common in some exports). When it
+    // is, the panel's vertical axis is Z and the plane has to be stood upright.
+    const isFlat = height < 0.01;
+    const logicalHeight = isFlat ? depth : height;
 
-    // Detect if geometry is flat on XZ plane (common in some exports)
-    if (height < 0.01) { 
-        rotation = [Math.PI / 2, Math.PI, 0]; 
-        position = [centerX, centerY + 0.05, centerZ];
-        logicalHeight = depth; 
-    } 
-    
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1080;
-    const pixelWidth = isMobile ? 720 : 1080;
-    const SCALE_MULTIPLIER = 39; 
-    
-    const scale = (width / pixelWidth) * SCALE_MULTIPLIER;
-    
+    // Trim the bezels off the raw panel box so the iframe only covers glass.
+    const visualWidth = width * ACTIVE_AREA_WIDTH;
+    const visualHeight = logicalHeight * ACTIVE_AREA_HEIGHT;
+    const yShift = logicalHeight * ACTIVE_AREA_Y_OFFSET;
+
+    const rotation = isFlat ? [Math.PI / 2, Math.PI, 0] : [0, 0, 0];
+    const position = isFlat
+        ? [centerX, centerY + 0.05, centerZ + yShift]
+        : [centerX, centerY + yShift, centerZ + 0.02];
+
+    const pixelWidth = canvasWidth < 1080 ? 720 : 1080;
+    const scale = (visualWidth / pixelWidth) * HTML_TRANSFORM_FACTOR;
+
     return {
         scale,
         pixelWidth,
-        pixelHeight: Math.round((pixelWidth * logicalHeight) / width), 
+        pixelHeight: Math.round((pixelWidth * visualHeight) / visualWidth),
         position,
         rotation,
-        visualWidth: width,
-        visualHeight: logicalHeight
+        visualWidth,
+        visualHeight
     };
-  }, [nodes]);
+  }, [nodes, canvasWidth]);
 
   const handleCanPlay = () => {
     if (iframeRef.current) {
@@ -86,6 +103,15 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                   style={{
                       width: scalingData.pixelWidth,
                       height: scalingData.pixelHeight,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      // WebKit ignores overflow:hidden for a composited child
+                      // (the iframe, promoted by mixBlendMode) inside a 3D
+                      // transformed ancestor. A mask forces the clip to apply.
+                      WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                      isolation: 'isolate',
+                      transform: 'translateZ(0)',
+                      backfaceVisibility: 'hidden',
                   }}
               >
                   <iframe

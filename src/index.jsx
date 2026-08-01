@@ -32,7 +32,7 @@ function App() {
     // Lazy load YouTube iframe only when needed
     useEffect(() => {
         const timer = setTimeout(() => {
-            setIframeSrc('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ')
+            setIframeSrc('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playsinline=1&playlist=dQw4w9WgXcQ')
         }, 1000)
         return () => clearTimeout(timer)
     }, [])
