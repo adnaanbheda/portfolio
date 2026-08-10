@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, raspberrypi, portfolio]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Sync build output to webroot
+        run: rsync -a --delete dist/ /home/adnaan/sites/provision/portfolio-adnaan/html/
+
+      - name: Update nginx site config and reload
+        run: |
+          sudo cp nginx.conf /etc/nginx/conf.d/portfolio-adnaan.conf
+          sudo nginx -t
+          sudo systemctl reload nginx
