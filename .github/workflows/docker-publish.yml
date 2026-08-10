@@ -103,3 +103,13 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+  deploy:
+    needs: build
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: [self-hosted, raspberrypi, portfolio]
+    steps:
+      - name: Pull and restart container
+        run: |
+          docker compose -f /home/adnaan/sites/docker-compose.yaml pull adnaan-portfolio
+          docker compose -f /home/adnaan/sites/docker-compose.yaml up -d adnaan-portfolio
