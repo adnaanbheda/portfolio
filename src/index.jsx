@@ -81,7 +81,9 @@ function App() {
                     fov: 45,
                     near: 0.1,
                     far: 2000,
-                    position: [-3, 1.5, 4]
+                    // 100x the framing distance the scene was authored at - keep in
+                    // sync with SCENE_SCALE_FACTOR in Experience.jsx (see there for why).
+                    position: [-300, 150, 400]
                 }}
             >
                 <Suspense fallback={null}>
