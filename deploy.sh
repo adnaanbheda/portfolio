@@ -45,8 +45,20 @@ if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
   exit 0
 fi
 
-echo "$(date -Iseconds) deploying $LOCAL_SHA -> $REMOTE_SHA"
+# Always sync the checkout so this script and nginx.conf stay current even
+# on a skipped tick below - otherwise a deploy-relevant commit landing on
+# top of a skipped one would diff against a stale LOCAL_SHA next time.
 git reset --hard origin/main
+
+# Skip the heavy pipeline (build/rsync/nginx/purge/notify) for commits that
+# don't touch anything that affects the deployed site - docs, agent/tooling
+# config, CI-only files, etc.
+if ! git diff --name-only "$LOCAL_SHA" "$REMOTE_SHA" | grep -qE '^(src/|public/|package(-lock)?\.json|vite\.config\.js|nginx\.conf)'; then
+  echo "$(date -Iseconds) $LOCAL_SHA -> $REMOTE_SHA has no deploy-relevant changes, skipping build."
+  exit 0
+fi
+
+echo "$(date -Iseconds) deploying $LOCAL_SHA -> $REMOTE_SHA"
 
 npm ci
 npm run build
