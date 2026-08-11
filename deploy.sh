@@ -25,11 +25,17 @@ if [ -f "$ENV_FILE" ]; then
   source "$ENV_FILE"
 fi
 
+# Body goes to python3 over stdin and comes back as a JSON-escaped Discord
+# payload - avoids hand-escaping quotes/backticks/newlines from commit
+# messages or $BASH_COMMAND into a hand-rolled JSON string.
 notify() {
   [ -n "${DISCORD_WEBHOOK_URL:-}" ] || return 0
-  curl -sf -X POST -H "Content-Type: application/json" \
-    -d "{\"content\": \"$1\"}" \
-    "$DISCORD_WEBHOOK_URL" >/dev/null || true
+  local payload
+  payload="$(printf '%s' "$1" | python3 -c '
+import json, sys
+print(json.dumps({"content": sys.stdin.read()}))
+')"
+  curl -sf -X POST -H "Content-Type: application/json" -d "$payload" "$DISCORD_WEBHOOK_URL" >/dev/null || true
 }
 
 # set -e turns any failing command below into an ERR trap; the no-op exit
@@ -86,5 +92,6 @@ fi
 # otherwise go unnoticed. Hits nginx directly, unaffected by DNS/Cloudflare.
 curl -sf http://localhost:5173/ > /dev/null
 
-notify "✅ portfolio-adnaan deployed \`${REMOTE_SHA:0:7}\`"
+COMMITS="$(git log --pretty=format:'%h %s' "$LOCAL_SHA..$REMOTE_SHA")"
+notify "$(printf '🚀 **Deployed** `%s` @ `%s`\n%s' "$(basename "$REPO_DIR")" "${REMOTE_SHA:0:7}" "${COMMITS:-(no commits listed)}")"
 echo "$(date -Iseconds) deploy done at $REMOTE_SHA"
