@@ -1,6 +1,7 @@
 import { Html, MeshReflectorMaterial, useGLTF } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { forwardRef, useMemo, useRef } from "react";
+import { Euler, Quaternion, Vector3 } from "three";
 
 // drei's <Html transform> converts CSS px to world units with a fixed factor of
 // 40 (see getObjectCSSMatrix: 1 / ((distanceFactor || 10) / 400)). Using it
@@ -16,9 +17,19 @@ const ACTIVE_AREA_HEIGHT = 0.92;
 // panel centre. Fraction of panel height to lift the content by.
 const ACTIVE_AREA_Y_OFFSET = 0.015;
 
+// Reused scratch objects for the per-frame facing check (avoid per-frame allocs).
+const scratchQuat = new Quaternion();
+const scratchLocalQuat = new Quaternion();
+const scratchEuler = new Euler();
+const scratchNormal = new Vector3();
+const scratchPos = new Vector3();
+const scratchToCamera = new Vector3();
+
 const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
   const { nodes, materials } = useGLTF("/monitor.glb");
   const iframeRef = useRef(null);
+  const screenMeshRef = useRef(null);
+  const wasFacingCamera = useRef(true);
   const canvasWidth = useThree((state) => state.size.width);
 
   const src = iframeSrc || 'https://open.spotify.com/embed/playlist/37i9dQZEVXcZb9ak6F5ysH?utm_source=generator'
@@ -81,6 +92,30 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
     };
   }, [nodes, canvasWidth]);
 
+  // WebKit doesn't reliably honour CSS backface-visibility on a composited
+  // iframe inside a 3D-transformed ancestor (same class of bug as the
+  // Html-clip workaround above), so the screen stays visible through the
+  // monitor case when orbiting behind it. Compute facing manually instead
+  // and toggle the DOM node directly (no React re-render).
+  useFrame((state) => {
+    const mesh = screenMeshRef.current;
+    const wrapper = iframeRef.current?.parentElement;
+    if (!mesh || !wrapper) return;
+
+    const worldQuat = mesh.getWorldQuaternion(scratchQuat);
+    const localQuat = scratchLocalQuat.setFromEuler(scratchEuler.set(...scalingData.rotation));
+    const normal = scratchNormal.set(0, 0, 1).applyQuaternion(worldQuat.multiply(localQuat));
+
+    const worldPos = mesh.localToWorld(scratchPos.set(...scalingData.position));
+    const toCamera = scratchToCamera.copy(state.camera.position).sub(worldPos);
+
+    const facingCamera = normal.dot(toCamera) > 0;
+    if (facingCamera !== wasFacingCamera.current) {
+      wrapper.style.visibility = facingCamera ? "visible" : "hidden";
+      wasFacingCamera.current = facingCamera;
+    }
+  });
+
   const handleCanPlay = () => {
     if (iframeRef.current) {
       try {
@@ -94,7 +129,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
       <group rotation={[-Math.PI / 2, 0, 0]} scale={0.333}>
         <group rotation={[Math.PI / 2, 0, 0]} scale={0.01}>
           <group position={[0.001, 51.2, 0.581]} rotation={[-Math.PI / 2, 0, 0]} scale={12.898}>
-            <mesh geometry={nodes.screen.geometry} material={materials['Material.001']}>
+            <mesh ref={screenMeshRef} geometry={nodes.screen.geometry} material={materials['Material.001']}>
               <Html
                   transform
                   scale={scalingData.scale}
