@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Cron-driven deploy for the Pi runner. Replaces the old self-hosted GitHub
-# Actions job: this script pulls, builds, syncs, reloads nginx, and purges
-# Cloudflare cache. Run via crontab, e.g.:
+# Actions job: this script pulls, builds, syncs, reloads nginx, purges
+# Cloudflare cache, and posts a Discord notification on success/failure.
+# Run via crontab, e.g.:
 #   */2 * * * * /home/adnaan/portfolio-adnaan/deploy.sh >> /home/adnaan/deploy.log 2>&1
 set -euo pipefail
 
@@ -18,6 +19,23 @@ if ! flock -n 9; then
 fi
 
 cd "$REPO_DIR"
+
+if [ -f "$ENV_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+fi
+
+notify() {
+  [ -n "${DISCORD_WEBHOOK_URL:-}" ] || return 0
+  curl -sf -X POST -H "Content-Type: application/json" \
+    -d "{\"content\": \"$1\"}" \
+    "$DISCORD_WEBHOOK_URL" >/dev/null || true
+}
+
+# set -e turns any failing command below into an ERR trap; the no-op exit
+# above is deliberate (exit 0), so a normal "nothing changed" tick never
+# triggers it.
+trap 'notify "⚠️ portfolio-adnaan deploy FAILED at line $LINENO: \`$BASH_COMMAND\`"' ERR
 
 git fetch origin main
 LOCAL_SHA="$(git rev-parse HEAD)"
@@ -42,11 +60,6 @@ sudo systemctl reload nginx
 # Purge Cloudflare cache for the HTML shell. /assets/* is content-hashed and
 # cached immutably - never needs purging. Skips quietly if the env file or
 # secrets are missing, so a fresh checkout can't break the deploy.
-if [ -f "$ENV_FILE" ]; then
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-fi
-
 if [ -n "${CF_API_TOKEN:-}" ] && [ -n "${CF_ZONE_ID:-}" ]; then
   curl -sf -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/purge_cache" \
     -H "Authorization: Bearer $CF_API_TOKEN" \
@@ -61,4 +74,5 @@ fi
 # otherwise go unnoticed. Hits nginx directly, unaffected by DNS/Cloudflare.
 curl -sf http://localhost:5173/ > /dev/null
 
+notify "✅ portfolio-adnaan deployed \`${REMOTE_SHA:0:7}\`"
 echo "$(date -Iseconds) deploy done at $REMOTE_SHA"
