@@ -1,4 +1,4 @@
-import { CameraControls, CameraControlsImpl, ContactShadows, Sparkles, Svg, Text } from '@react-three/drei'
+import { CameraControls, ContactShadows, Sparkles, Svg, Text } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useEffect, useRef } from 'react'
@@ -19,43 +19,16 @@ import StandingDesk from './StandingDesk'
 // (which every iOS browser runs on, Chrome included) loses precision and
 // collapses the iframe to a ~0px degenerate box, rendering it detached from
 // the screen mesh. Blowing up every spatial prop in the scene by the same
-// factor gives WebKit a numerically safe matrix to work with. HOME_FRAMES
-// below is in these scaled world units.
+// factor - and moving the camera out by the same factor in index.jsx -
+// leaves the on-screen result pixel-identical (angular size only depends on
+// the size/distance ratio) while giving WebKit a numerically safe matrix to
+// work with. Keep this in sync with the camera position in index.jsx.
 const SCENE_SCALE_FACTOR = 100
 
-// Yaw of the two groups the room hangs from. The isometric azimuth is derived
-// from them, so turning the room keeps the view square to its corner.
-const SCENE_YAW = 1
-const LEVEL_YAW = Math.PI + 0.5
-
-// True isometric: orthographic (see <Canvas> in index.jsx), looking down the
-// diagonal of the room's cube. Azimuth is 45 degrees off the walls, towards the
-// open corner; elevation is atan(1/sqrt(2)) = 35.26 degrees, which foreshortens
-// all three axes equally and puts the floor edges at 30 degrees on screen.
-const ISO_AZIMUTH = SCENE_YAW + LEVEL_YAW + Math.PI / 4 - Math.PI * 2
-const ISO_ELEVATION = Math.atan(1 / Math.SQRT2)
-const ISO_POLAR = Math.PI / 2 - ISO_ELEVATION
-
-// Orthographic distance doesn't change the image, it only has to clear the
-// scene so nothing lands behind the near plane.
-const CAMERA_DISTANCE = 6 * SCENE_SCALE_FACTOR
-
-// What the home view frames: the point at the centre of the screen, and the
-// world-unit area that must fit. An orthographic camera's zoom is pixels per
-// world unit, so unlike the old perspective fov it doesn't follow the viewport
-// by itself - see homeZoom.
-const HOME_FRAMES = {
-    desktop: { target: [106, -40, 37], width: 640, height: 470 },
-    mobile: { target: [18, -15, -15], width: 205, height: 410 },
-}
-
-// The intro zooms in from this fraction of the home zoom. Zoom is the only
-// thing that moves, so the view is isometric from the first frame.
-const INTRO_ZOOM = 0.8
-
-// How close (as a fraction of the home zoom) the intro must get to count as
-// arrived: the last of the ease-out tail, which by then is barely moving.
-const SETTLED_ZOOM = 0.006
+// How close (world units) the camera must be to the end of a move to count
+// as arrived. The default view sits ~5.2 authored units out, so 0.03 is
+// ~0.6% of it: the last of the ease-out tail, which by then is barely moving.
+const SETTLED_DISTANCE = 0.03 * SCENE_SCALE_FACTOR
 
 export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntroComplete, isZoomed })
 {
@@ -80,33 +53,10 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
         return () => document.removeEventListener('keydown', handleKeyDown)
     }, [])
 
-    // Responsive logic
-    const isMobile = size.width < 768
-    const textPosition = isMobile ? [-0.5, 2.32, 0.13] : [-1.42, 1.34, 0.31]
-    const textScale = isMobile ? 0.68 : 1.3
-    const sceneScale = isMobile ? 0.55 : 1
-    const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
-
-    // Read through a ref by listeners set up once, like callbacks above.
-    const frame = isMobile ? HOME_FRAMES.mobile : HOME_FRAMES.desktop
-    const homeZoom = Math.min(size.width / frame.width, size.height / frame.height)
-    const home = useRef()
-    home.current = { frame, zoom: homeZoom, isZoomed }
-
-    // The one default pose: first load, Esc, Back and double-click all land here.
-    const goHome = (enableTransition) => {
-        const controls = cameraControlsRef.current
-        const { frame, zoom } = home.current
-        const target = new Vector3(...frame.target)
-        const position = new Vector3()
-            .setFromSphericalCoords(CAMERA_DISTANCE, ISO_POLAR, ISO_AZIMUTH)
-            .add(target)
-        controls.setLookAt(...position.toArray(), ...target.toArray(), enableTransition)
-        controls.zoomTo(zoom, enableTransition)
-    }
-
-    // Intro: start slightly zoomed out on the isometric pose, then glide in
-    // once the scene is on screen.
+    // Intro: start pulled back and swung round, then glide into the default
+    // framing once the scene is on screen. reset() targets the state
+    // camera-controls saved on construction (the Canvas camera position in
+    // index.jsx), so the end pose and the Esc/Back pose are the same.
     //
     // The monitor iframe (a whole YouTube player) is only loaded once this
     // glide has finished - onIntroComplete - so its startup work doesn't
@@ -124,32 +74,33 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
             callbacks.current.onIntroComplete?.()
         }
 
-        // Not zoomTo()'s promise: that resolves on camera-controls' 'rest'
-        // event, so the camera spends seconds creeping through sub-pixel
-        // movement before it counts as resting. Instead, call it done once the
-        // camera is visually at its end pose.
+        // Not reset()'s promise: that resolves on camera-controls' 'rest'
+        // event, whose restThreshold (0.01) is in world units - and this scene
+        // is scaled up 100x, so the camera spends seconds creeping through
+        // sub-pixel movement before it counts as resting. Instead, call it
+        // done once the camera is visually at its end pose.
+        const current = new Vector3()
+        const end = new Vector3()
         const checkSettled = () => {
-            const { zoom } = home.current
-            if (Math.abs(camera.zoom - zoom) / zoom < SETTLED_ZOOM) finish()
+            controls.getPosition(current, false)
+            controls.getPosition(end, true)
+            if (current.distanceTo(end) < SETTLED_DISTANCE) finish()
         }
 
-        // Dolly does nothing visible on an orthographic camera.
-        controls.mouseButtons.middle = CameraControlsImpl.ACTION.ZOOM
-
         const defaultSmoothTime = controls.smoothTime
-        goHome(false)
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             finish()
             return
         }
 
-        controls.zoomTo(home.current.zoom * INTRO_ZOOM, false)
+        controls.rotate(0.55, -0.35, false)
+        controls.dolly(-controls.distance * 0.6, false)
         controls.smoothTime = 0.9
 
         // Give drei's <Loader> fade a moment so the move is actually seen.
         const startTimer = setTimeout(() => {
             controls.addEventListener('update', checkSettled)
-            controls.zoomTo(home.current.zoom, true)
+            controls.reset(true)
         }, 350)
         // Backstop so the iframe always arrives, even if the visitor grabs the
         // camera mid-glide and keeps it moving.
@@ -182,18 +133,13 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
         }
     }, [isZoomed])
     
-    // Zoom is in pixels, so a resize has to re-fit whatever is being framed.
-    const lastSize = useRef(size)
-    useEffect(() => {
-        if (lastSize.current === size) return
-        lastSize.current = size
-        if (home.current.isZoomed) {
-            cameraControlsRef.current.fitToBox(meshRef.current, false)
-        } else {
-            goHome(false)
-        }
-    }, [size])
-
+    // Responsive logic
+    const isMobile = size.width < 768
+    const textPosition = isMobile ? [-0.25, 1.5, 0] : [-1.5, 0.5, 0]
+    const textScale = isMobile ? 0.6 : 1
+    const sceneScale = isMobile ? 0.55 : 1
+    const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
+    
     const moveToMonitor = () => {
         cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
         cameraControlsRef.current.fitToBox(meshRef.current, true);
@@ -202,7 +148,7 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
 
     const moveCameraToDefault = () => {
         if (!cameraControlsRef.current) return
-        goHome(true);
+        cameraControlsRef.current.reset(true);
         cameraControlsRef.current.enabled = true;
         camera.updateProjectionMatrix()
         camera.updateWorldMatrix(true, true);
@@ -238,20 +184,17 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
             maxPolarAngle={isMobile ? 2 : 1.5}
             rotation={ [ 0, 1, 0 ] }
             polar={ [ - 0.3, 0 ] }
-            azimuth={ [ -2, 0.75 ] } />
+            azimuth={ [ -2, 0.75 ] }
+            infinityDolly={true} />
 
         {/* Everything spatial lives at SCENE_SCALE_FACTOR x the scale the whole
             scene was originally authored/tuned at - see the constant's comment.
             Nothing in here needed its own numbers touched; scaling one shared
             ancestor keeps every relative position/size exactly as it was. */}
         <group scale={SCENE_SCALE_FACTOR}>
-            {/* Not just hidden: it sits in the monitor's sightline, and three.js
-                still raycasts invisible objects, so the links would stay clickable. */}
-            {!isZoomed && <group
+            <group
                 position={ textPosition }
-                // Faces the home camera head-on: only the room is isometric, and
-                // any tilt away from the view squashes the lettering.
-                rotation={[-ISO_ELEVATION, ISO_AZIMUTH, 0, 'YXZ']}
+                rotation={[0, -0.75, 0]}
                 scale={textScale}
             >
                 <Sparkles
@@ -269,11 +212,11 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
                     <Svg position={isMobile?[-0.5, -0.7, 0]:[-0.35, -0.9, 0]} onClick={() => openExternal('/cv.pdf')} src={resumeSvg} alt="Resume" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
                     <Svg position={isMobile?[-0.2, -0.7, 0]:[-0.65, -0.9, 0]} onClick={() => openExternal('https://linkedin.com/in/adnaanb')} src={linkedinSvg} alt="LinkedIn" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
                 </group>
-            </group>}
+            </group>
 
-            <group global rotation={ [ 0, SCENE_YAW, 0 ] }>
+            <group global rotation={ [ 0, 1, 0 ] }>
                     <group onDoubleClick={resetView} scale={sceneScale} position={scenePosition}>
-                        <Level scale={0.3} rotation={[0, LEVEL_YAW, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
+                        <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
                             <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
                             <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
                                 <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />

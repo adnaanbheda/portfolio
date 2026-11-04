@@ -94,13 +94,14 @@ function App() {
             // fullscreen quad - pure cost. The composer handles AA instead
             // (see multisampling in Experience.jsx).
             gl={{ antialias: false, stencil: false }}
-            // Orthographic for the isometric view. Pose and zoom are set by
-            // goHome() in Experience.jsx, which fits them to the viewport.
-            orthographic
             camera={{
+                    fov: 45,
                     near: 0.1,
                     far: 2000,
-                    position: [-300, 300, 300]
+                    // 100x the framing distance the scene was authored at - keep in
+                    // sync with SCENE_SCALE_FACTOR in Experience.jsx (see there for why).
+                    // Angled to look isometric: 45 degrees off the room's walls, 35 degrees up.
+                    position: [-322, 301, 279]
                 }}
             >
                 <Suspense fallback={null}>
