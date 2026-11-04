@@ -9,39 +9,13 @@ Title: bookshelf speakers
 */
 
 import { useGLTF } from '@react-three/drei'
-import { useGraph } from '@react-three/fiber'
-import React from 'react'
-import { SkeletonUtils } from 'three-stdlib'
 
+// The source model is rigged but has no animations, so the skinning was baked
+// into plain meshes in speakers.glb. Left skinned, three.js updated a bone
+// texture for each of its 19 meshes on every frame, for nothing.
 export default function Model(props) {
   const { scene } = useGLTF('/speakers.glb')
-  const clone = React.useMemo(() => SkeletonUtils.clone(scene), [scene])
-  const { nodes, materials } = useGraph(clone)
-  return (
-    <group {...props} dispose={null}>
-      <primitive object={nodes.GLTF_created_0_rootJoint} />
-      <primitive object={nodes.GLTF_created_1_rootJoint} />
-      <skinnedMesh geometry={nodes.Object_7.geometry} material={materials.membrane_cooper} skeleton={nodes.Object_7.skeleton} />
-      <skinnedMesh geometry={nodes.Object_8.geometry} material={materials.guma} skeleton={nodes.Object_8.skeleton} />
-      <skinnedMesh geometry={nodes.Object_9.geometry} material={materials.lightgray} skeleton={nodes.Object_9.skeleton} />
-      <skinnedMesh geometry={nodes.Object_11.geometry} material={materials.black} skeleton={nodes.Object_11.skeleton} />
-      <skinnedMesh geometry={nodes.Object_12.geometry} material={materials.darkwood} skeleton={nodes.Object_12.skeleton} />
-      <skinnedMesh geometry={nodes.Object_13.geometry} material={materials.no_material} skeleton={nodes.Object_13.skeleton} />
-      <skinnedMesh geometry={nodes.Object_14.geometry} material={materials.lightgray} skeleton={nodes.Object_14.skeleton} />
-      <skinnedMesh geometry={nodes.Object_15.geometry} material={materials.material} skeleton={nodes.Object_15.skeleton} />
-      <skinnedMesh geometry={nodes.Object_16.geometry} material={materials.membrane_cooper} skeleton={nodes.Object_16.skeleton} />
-      <skinnedMesh geometry={nodes.Object_22.geometry} material={materials.guma} skeleton={nodes.Object_22.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_23.geometry} material={materials.brownwood} skeleton={nodes.Object_23.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_24.geometry} material={materials.darkwood} skeleton={nodes.Object_24.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_25.geometry} material={materials.no_material} skeleton={nodes.Object_25.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_27.geometry} material={materials.membrane_alu} skeleton={nodes.Object_27.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_28.geometry} material={materials.lightgray} skeleton={nodes.Object_28.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_29.geometry} material={materials.black} skeleton={nodes.Object_29.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_30.geometry} material={materials.material} skeleton={nodes.Object_30.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_31.geometry} material={materials.darkgraymetal} skeleton={nodes.Object_31.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-      <skinnedMesh geometry={nodes.Object_32.geometry} material={materials.guma} skeleton={nodes.Object_32.skeleton} position={[-0.228, -0.054, -0.093]} scale={1.177} />
-    </group>
-  )
+  return <primitive object={scene} {...props} />
 }
 
 useGLTF.preload('/speakers.glb')
