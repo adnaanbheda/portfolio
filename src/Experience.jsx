@@ -2,6 +2,7 @@ import { CameraControls, ContactShadows, Sparkles, Svg, Text } from '@react-thre
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useEffect, useRef } from 'react'
+import { Vector3 } from 'three'
 import linkedinSvg from '../public/linkedin.svg'
 import resumeSvg from '../public/resume.svg'
 import Lamp from './Lamplight'
@@ -24,27 +25,109 @@ import StandingDesk from './StandingDesk'
 // work with. Keep this in sync with the camera position in index.jsx.
 const SCENE_SCALE_FACTOR = 100
 
-export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, isZoomed })
+// How close (world units) the camera must be to the end of a move to count
+// as arrived. The default view sits ~5.2 authored units out, so 0.03 is
+// ~0.6% of it: the last of the ease-out tail, which by then is barely moving.
+const SETTLED_DISTANCE = 0.03 * SCENE_SCALE_FACTOR
+
+export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntroComplete, isZoomed })
 {
     const meshRef = useRef()
     const cameraControlsRef = useRef()
     const { camera, size } = useThree()
+    const dpr = useThree((state) => state.viewport.dpr)
 
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            moveCameraToDefault()
-            onResetZoom?.()
+    // Parent callbacks are fresh closures every render, but they get called
+    // from listeners set up once. Always go through the latest.
+    const callbacks = useRef({})
+    callbacks.current = { onResetZoom, onIntroComplete }
+
+    // Registered once. This used to be a bare addEventListener in the render
+    // body, which stacked one more listener on every re-render (every iframe
+    // switch, every resize).
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') resetView()
         }
-    });
-    
+        document.addEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [])
+
+    // Intro: start pulled back and swung round, then glide into the default
+    // framing once the scene is on screen. reset() targets the state
+    // camera-controls saved on construction (the Canvas camera position in
+    // index.jsx), so the end pose and the Esc/Back pose are the same.
+    //
+    // The monitor iframe (a whole YouTube player) is only loaded once this
+    // glide has finished - onIntroComplete - so its startup work doesn't
+    // stutter the first thing a visitor sees.
+    useEffect(() => {
+        const controls = cameraControlsRef.current
+        if (!controls) return
+
+        let done = false
+        const finish = () => {
+            if (done) return
+            done = true
+            controls.smoothTime = defaultSmoothTime
+            controls.removeEventListener('update', checkSettled)
+            callbacks.current.onIntroComplete?.()
+        }
+
+        // Not reset()'s promise: that resolves on camera-controls' 'rest'
+        // event, whose restThreshold (0.01) is in world units - and this scene
+        // is scaled up 100x, so the camera spends seconds creeping through
+        // sub-pixel movement before it counts as resting. Instead, call it
+        // done once the camera is visually at its end pose.
+        const current = new Vector3()
+        const end = new Vector3()
+        const checkSettled = () => {
+            controls.getPosition(current, false)
+            controls.getPosition(end, true)
+            if (current.distanceTo(end) < SETTLED_DISTANCE) finish()
+        }
+
+        const defaultSmoothTime = controls.smoothTime
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            finish()
+            return
+        }
+
+        controls.rotate(0.55, -0.35, false)
+        controls.dolly(-controls.distance * 0.6, false)
+        controls.smoothTime = 0.9
+
+        // Give drei's <Loader> fade a moment so the move is actually seen.
+        const startTimer = setTimeout(() => {
+            controls.addEventListener('update', checkSettled)
+            controls.reset(true)
+        }, 350)
+        // Backstop so the iframe always arrives, even if the visitor grabs the
+        // camera mid-glide and keeps it moving.
+        const fallbackTimer = setTimeout(finish, 6000)
+
+        return () => {
+            clearTimeout(startTimer)
+            clearTimeout(fallbackTimer)
+            controls.removeEventListener('update', checkSettled)
+            controls.smoothTime = defaultSmoothTime
+        }
+    }, [])
+
     useEffect(() => {
         if (zoomTrigger > 0) {
             moveToMonitor()
         }
     }, [zoomTrigger])
     
-    // Handle back button click from parent
+    // Handle back button click from parent. Skipped on mount: the intro
+    // effect above owns the first reset.
+    const hasMounted = useRef(false)
     useEffect(() => {
+        if (!hasMounted.current) {
+            hasMounted.current = true
+            return
+        }
         if (isZoomed === false && cameraControlsRef.current) {
             moveCameraToDefault()
         }
@@ -60,21 +143,34 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, isZoom
     const moveToMonitor = () => {
         cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
         cameraControlsRef.current.fitToBox(meshRef.current, true);
-        console.log('Moving to monitor');
         cameraControlsRef.current.enabled = false;
     }
 
     const moveCameraToDefault = () => {
-        cameraControlsRef.current?.reset(true);
+        if (!cameraControlsRef.current) return
+        cameraControlsRef.current.reset(true);
         cameraControlsRef.current.enabled = true;
-        console.log('Moving to default');        
         camera.updateProjectionMatrix()
         camera.updateWorldMatrix(true, true);
     }
 
+    // Esc and double-click both need to clear isZoomed in the parent too,
+    // otherwise the camera resets but the DOM "Back" button stays up.
+    const resetView = () => {
+        moveCameraToDefault()
+        callbacks.current.onResetZoom?.()
+    }
+
+    const openExternal = (url) => window.open(url, '_blank', 'noopener,noreferrer')
+    const setPointer = (on) => () => { document.body.style.cursor = on ? 'pointer' : 'auto' }
+
     return <>
 
-        <EffectComposer>
+        {/* multisampling defaults to 8x MSAA on half-float targets, which is
+            heavy on integrated GPUs. At a high pixel ratio the edges are
+            already fine (and Noise hides the rest), so only pay for 4x when
+            the PerformanceMonitor in index.jsx has dropped dpr down. */}
+        <EffectComposer multisampling={dpr > 1.25 ? 0 : 4}>
             <Bloom luminanceThreshold={0} luminanceSmoothing={0} height={300} />
             <Noise opacity={0.09} />
             <Vignette eskil={false} offset={0.1} darkness={1.1} />
@@ -113,13 +209,13 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, isZoom
                     Hi.
                 </Text>
                 <group>
-                    <Svg position={isMobile?[-0.5, -0.7, 0]:[-0.35, -0.9, 0]} onClick={()=>open("/cv.pdf")} src={resumeSvg} alt="Resume" scale={0.001} onPointerOver={() => document.body.style.cursor = 'pointer'} onPointerOut={() => document.body.style.cursor = 'auto'} />
-                    <Svg position={isMobile?[-0.2, -0.7, 0]:[-0.65, -0.9, 0]} onClick={()=>open("https://linkedin.com/in/adnaanb")} src={linkedinSvg} alt="LinkedIn" scale={0.001} onPointerOver={() => document.body.style.cursor = 'pointer'} onPointerOut={() => document.body.style.cursor = 'auto'} />
+                    <Svg position={isMobile?[-0.5, -0.7, 0]:[-0.35, -0.9, 0]} onClick={() => openExternal('/cv.pdf')} src={resumeSvg} alt="Resume" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
+                    <Svg position={isMobile?[-0.2, -0.7, 0]:[-0.65, -0.9, 0]} onClick={() => openExternal('https://linkedin.com/in/adnaanb')} src={linkedinSvg} alt="LinkedIn" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
                 </group>
             </group>
 
             <group global rotation={ [ 0, 1, 0 ] }>
-                    <group onDoubleClick={moveCameraToDefault} scale={sceneScale} position={scenePosition}>
+                    <group onDoubleClick={resetView} scale={sceneScale} position={scenePosition}>
                         <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
                             <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
                             <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
@@ -132,7 +228,11 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, isZoom
 
             </group>
 
+            {/* Everything casting onto this is static (the lamp swing is too
+                small to read here), so render the shadow once instead of
+                re-rendering the whole scene plus two blur passes every frame. */}
             <ContactShadows
+                frames={ 1 }
                 position-y={ - 1.4 }
                 opacity={ 0.4 }
                 scale={ 10 }
