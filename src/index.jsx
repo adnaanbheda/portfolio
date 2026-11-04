@@ -19,8 +19,14 @@ const root = ReactDOM.createRoot(document.querySelector('#root'))
 const DEFAULT_SRC = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playsinline=1&playlist=dQw4w9WgXcQ'
 
 function App() {
-    // Empty until the intro camera glide finishes (see handleIntroComplete).
+    // A live third-party iframe is the single worst thing for frame rate here:
+    // on a phone it shares the page's main thread, and a running YouTube player
+    // cost more than the whole 3D scene. So the monitor shows a static poster
+    // until a visitor asks for something, and the iframe only exists while the
+    // camera is parked at the monitor.
     const [iframeSrc, setIframeSrc] = useState('')
+    const [requestedSrc, setRequestedSrc] = useState('')
+    const [cameraAtMonitor, setCameraAtMonitor] = useState(false)
     const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
     const [zoomTrigger, setZoomTrigger] = useState(0)
     const [isZoomed, setIsZoomed] = useState(false)
@@ -48,21 +54,29 @@ function App() {
         return () => clearTimeout(timer)
     }, [])
     
-    // First-load iframe waits for the intro camera glide to finish, so the
-    // YouTube player's startup doesn't stutter it. Keeps whatever a visitor
-    // picked if they clicked a button mid-intro.
-    const handleIntroComplete = () => {
-        setIframeSrc((current) => current || DEFAULT_SRC)
-    }
-
     const handleControlClick = (src) => {
-        setIframeSrc(src)
-        setZoomTrigger(prev => prev + 1)
+        setRequestedSrc(src)
         setIsZoomed(true)
+        if (cameraAtMonitor) {
+            setIframeSrc(src)
+        } else {
+            setZoomTrigger(prev => prev + 1)
+        }
     }
 
+    // The iframe waits for this so its startup can't stutter the zoom.
+    const handleZoomComplete = () => {
+        setCameraAtMonitor(true)
+        setIframeSrc(requestedSrc)
+    }
+
+    // Unloading on the way out, not just hiding: a player left running in the
+    // background keeps costing frames for the rest of the visit.
     const handleResetZoom = () => {
         setIsZoomed(false)
+        setCameraAtMonitor(false)
+        setRequestedSrc('')
+        setIframeSrc('')
     }
 
     return (
@@ -74,7 +88,7 @@ function App() {
             dataInterpolation={(p) => `Loading ${Math.round(p)}%`}
         />
         <Help />
-        <Controls currentSrc={iframeSrc || DEFAULT_SRC} setCurrentSrc={handleControlClick} />
+        <Controls currentSrc={requestedSrc || DEFAULT_SRC} setCurrentSrc={handleControlClick} />
         
         {/* Back button when zoomed to monitor */}
         {isZoomed && (
@@ -94,6 +108,10 @@ function App() {
             // fullscreen quad - pure cost. The composer handles AA instead
             // (see multisampling in Experience.jsx).
             gl={{ antialias: false, stencil: false }}
+            // Parked at the monitor nothing in the scene needs to move, so
+            // stop rendering and leave the whole device to the iframe. Demand
+            // rather than never: a resize still has to redraw.
+            frameloop={cameraAtMonitor ? 'demand' : 'always'}
             camera={{
                     fov: 45,
                     near: 0.1,
@@ -108,7 +126,8 @@ function App() {
                         iframeSrc={iframeSrc}
                         zoomTrigger={zoomTrigger}
                         onResetZoom={handleResetZoom}
-                        onIntroComplete={handleIntroComplete}
+                        onZoomComplete={handleZoomComplete}
+                        onPosterClick={() => handleControlClick(DEFAULT_SRC)}
                         isZoomed={isZoomed}
                     />
                     {/* Inside the Suspense on purpose: it only starts sampling

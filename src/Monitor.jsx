@@ -25,16 +25,17 @@ const scratchNormal = new Vector3();
 const scratchPos = new Vector3();
 const scratchToCamera = new Vector3();
 
-const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
+const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
   const { nodes, materials } = useGLTF("/monitor.glb");
   const iframeRef = useRef(null);
+  const screenOverlayRef = useRef(null);
   const screenMeshRef = useRef(null);
   const wasFacingCamera = useRef(true);
   const canvasWidth = useThree((state) => state.size.width);
 
-  // No fallback src: the parent deliberately leaves this empty until the
-  // camera has settled (see index.jsx). A default here used to start loading
-  // a Spotify embed immediately, defeating that deferral.
+  // No fallback src: the parent deliberately leaves this empty until a visitor
+  // asks for something and the camera has arrived (see index.jsx). The screen
+  // shows a static poster until then.
   const src = iframeSrc
 
   // Calculate sizing based on the screen's geometry
@@ -102,7 +103,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
   // and toggle the DOM node directly (no React re-render).
   useFrame((state) => {
     const mesh = screenMeshRef.current;
-    const wrapper = iframeRef.current?.parentElement;
+    const wrapper = screenOverlayRef.current?.parentElement;
     if (!mesh || !wrapper) return;
 
     const worldQuat = mesh.getWorldQuaternion(scratchQuat);
@@ -152,6 +153,28 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                       backfaceVisibility: 'hidden',
                   }}
               >
+                  {!src && <button
+                      type="button"
+                      aria-label="Play video"
+                      onClick={onPosterClick}
+                      style={{
+                          display: 'block',
+                          width: '100%',
+                          height: '100%',
+                          padding: 0,
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          opacity: 0.6,
+                          mixBlendMode: 'screen',
+                      }}
+                  >
+                      <img
+                          src="/monitor-poster.jpg"
+                          alt=""
+                          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                  </button>}
                   {src && <iframe
                       ref={iframeRef}
                       src={src}
@@ -168,6 +191,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                       onPointerOver={props.onPointerOver}
                   />}
                   <div
+                      ref={screenOverlayRef}
                       style={{
                           position: 'absolute',
                           top: 0,

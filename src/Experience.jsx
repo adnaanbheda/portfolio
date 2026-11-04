@@ -30,7 +30,41 @@ const SCENE_SCALE_FACTOR = 100
 // ~0.6% of it: the last of the ease-out tail, which by then is barely moving.
 const SETTLED_DISTANCE = 0.03 * SCENE_SCALE_FACTOR
 
-export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntroComplete, isZoomed })
+// Calls onSettled once the camera has visually reached the end of its current
+// move, or after backstopMs if something keeps it moving. Returns a cancel.
+//
+// Not the promise from reset()/fitToBox(): those resolve on camera-controls'
+// 'rest' event, whose restThreshold (0.01) is in world units - and this scene
+// is scaled up 100x, so the camera spends seconds creeping through sub-pixel
+// movement before it counts as resting.
+function whenSettled(controls, backstopMs, onSettled)
+{
+    const current = new Vector3()
+    const end = new Vector3()
+    let done = false
+
+    const cleanUp = () => {
+        done = true
+        clearTimeout(backstop)
+        controls.removeEventListener('update', check)
+    }
+    const finish = () => {
+        if (done) return
+        cleanUp()
+        onSettled()
+    }
+    const check = () => {
+        controls.getPosition(current, false)
+        controls.getPosition(end, true)
+        if (current.distanceTo(end) < SETTLED_DISTANCE) finish()
+    }
+
+    const backstop = setTimeout(finish, backstopMs)
+    controls.addEventListener('update', check)
+    return cleanUp
+}
+
+export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoomComplete, onPosterClick, isZoomed })
 {
     const meshRef = useRef()
     const cameraControlsRef = useRef()
@@ -40,7 +74,9 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
     // Parent callbacks are fresh closures every render, but they get called
     // from listeners set up once. Always go through the latest.
     const callbacks = useRef({})
-    callbacks.current = { onResetZoom, onIntroComplete }
+    callbacks.current = { onResetZoom, onZoomComplete }
+
+    const cancelZoomWatch = useRef(null)
 
     // Registered once. This used to be a bare addEventListener in the render
     // body, which stacked one more listener on every re-render (every iframe
@@ -57,41 +93,14 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
     // framing once the scene is on screen. reset() targets the state
     // camera-controls saved on construction (the Canvas camera position in
     // index.jsx), so the end pose and the Esc/Back pose are the same.
-    //
-    // The monitor iframe (a whole YouTube player) is only loaded once this
-    // glide has finished - onIntroComplete - so its startup work doesn't
-    // stutter the first thing a visitor sees.
     useEffect(() => {
         const controls = cameraControlsRef.current
         if (!controls) return
 
-        let done = false
-        const finish = () => {
-            if (done) return
-            done = true
-            controls.smoothTime = defaultSmoothTime
-            controls.removeEventListener('update', checkSettled)
-            callbacks.current.onIntroComplete?.()
-        }
-
-        // Not reset()'s promise: that resolves on camera-controls' 'rest'
-        // event, whose restThreshold (0.01) is in world units - and this scene
-        // is scaled up 100x, so the camera spends seconds creeping through
-        // sub-pixel movement before it counts as resting. Instead, call it
-        // done once the camera is visually at its end pose.
-        const current = new Vector3()
-        const end = new Vector3()
-        const checkSettled = () => {
-            controls.getPosition(current, false)
-            controls.getPosition(end, true)
-            if (current.distanceTo(end) < SETTLED_DISTANCE) finish()
-        }
-
         const defaultSmoothTime = controls.smoothTime
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            finish()
-            return
-        }
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+        let cancelSettled = () => {}
 
         controls.rotate(0.55, -0.35, false)
         controls.dolly(-controls.distance * 0.6, false)
@@ -99,17 +108,15 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
 
         // Give drei's <Loader> fade a moment so the move is actually seen.
         const startTimer = setTimeout(() => {
-            controls.addEventListener('update', checkSettled)
+            cancelSettled = whenSettled(controls, 6000, () => {
+                controls.smoothTime = defaultSmoothTime
+            })
             controls.reset(true)
         }, 350)
-        // Backstop so the iframe always arrives, even if the visitor grabs the
-        // camera mid-glide and keeps it moving.
-        const fallbackTimer = setTimeout(finish, 6000)
 
         return () => {
             clearTimeout(startTimer)
-            clearTimeout(fallbackTimer)
-            controls.removeEventListener('update', checkSettled)
+            cancelSettled()
             controls.smoothTime = defaultSmoothTime
         }
     }, [])
@@ -144,10 +151,16 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
         cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
         cameraControlsRef.current.fitToBox(meshRef.current, true);
         cameraControlsRef.current.enabled = false;
+
+        cancelZoomWatch.current?.()
+        cancelZoomWatch.current = whenSettled(cameraControlsRef.current, 2500, () => {
+            callbacks.current.onZoomComplete?.()
+        })
     }
 
     const moveCameraToDefault = () => {
         if (!cameraControlsRef.current) return
+        cancelZoomWatch.current?.()
         cameraControlsRef.current.reset(true);
         cameraControlsRef.current.enabled = true;
         camera.updateProjectionMatrix()
@@ -220,7 +233,7 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
                             <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
                             <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
                                 <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />
-                                <Monitor ref={meshRef} iframeSrc={iframeSrc} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
+                                <Monitor ref={meshRef} iframeSrc={iframeSrc} onPosterClick={onPosterClick} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
                                 <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                             </StandingDesk>
                         </Level>
