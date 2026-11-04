@@ -1,5 +1,15 @@
 @import './help.css';
 
+/* The DOM UI (controls, back button, help) has always asked for 'Jost', but
+   nothing declared it, so it silently fell back to the system font. This is
+   the same file index.html preloads and the 3D <Text> uses. */
+@font-face {
+  font-family: 'Jost';
+  src: url('/jost.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 html,
 body,
 #root {
