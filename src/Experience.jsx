@@ -1,16 +1,19 @@
-import { CameraControls, ContactShadows, Sparkles, Svg, Text } from '@react-three/drei'
+import { CameraControls, ContactShadows } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
 import { useEffect, useRef } from 'react'
 import { Vector3 } from 'three'
-import linkedinSvg from '../public/linkedin.svg'
-import resumeSvg from '../public/resume.svg'
+import DeskProps from './DeskProps'
 import Lamp from './Lamplight'
 import Level from './Level'
+import Lighting from './Lighting'
 import Monitor from './Monitor'
 import SnakePlant from './SnakePlant'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
+import Stars from './Stars'
+import SunPatch from './SunPatch'
+import WindowView from './WindowView'
 
 // The monitor's screen content is a drei <Html transform>, which projects
 // through a CSS matrix3d built from the object's full world-space scale.
@@ -88,7 +91,7 @@ function whenFramesStable(onStable)
     return () => cancelAnimationFrame(frame)
 }
 
-export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed })
+export default function Experience({ iframeSrc, terminal, night, zoomTrigger, onResetZoom, onEscape, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed })
 {
     const meshRef = useRef()
     const cameraControlsRef = useRef()
@@ -98,7 +101,7 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
     // Parent callbacks are fresh closures every render, but they get called
     // from listeners set up once. Always go through the latest.
     const callbacks = useRef({})
-    callbacks.current = { onResetZoom, onZoomComplete, onSceneReady, onIntroComplete }
+    callbacks.current = { onResetZoom, onEscape, onZoomComplete, onSceneReady, onIntroComplete }
 
     const cancelZoomWatch = useRef(null)
 
@@ -107,7 +110,10 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
     // switch, every resize).
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key === 'Escape') resetView()
+            if (event.key !== 'Escape') return
+            // Closing a site on the monitor comes first; the view only resets
+            // when there was nothing to close.
+            if (!callbacks.current.onEscape?.()) resetView()
         }
         document.addEventListener('keydown', handleKeyDown)
         return () => document.removeEventListener('keydown', handleKeyDown)
@@ -184,9 +190,10 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
     
     // Responsive logic
     const isMobile = size.width < 768
-    const textPosition = isMobile ? [-0.25, 1.5, 0] : [-1.5, 0.5, 0]
-    const textScale = isMobile ? 0.6 : 1
-    const sceneScale = isMobile ? 0.55 : 1
+    const sceneScale = isMobile ? 0.55 : 0.9
+    // Centres the room on the point the camera orbits. On a phone it only
+    // needs lifting clear of the command bar.
+    const roomOffset = isMobile ? [0, 0.5, 0] : [-1.55, 0.3, -1.15]
     const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
     
     const moveToMonitor = () => {
@@ -216,9 +223,6 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
         callbacks.current.onResetZoom?.()
     }
 
-    const openExternal = (url) => window.open(url, '_blank', 'noopener,noreferrer')
-    const setPointer = (on) => () => { document.body.style.cursor = on ? 'pointer' : 'auto' }
-
     return <>
 
         {/* multisampling defaults to 8x MSAA on half-float targets, which is
@@ -226,10 +230,13 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
             already fine (and Noise hides the rest), so only pay for 4x when
             the PerformanceMonitor in index.jsx has dropped dpr down. */}
         <EffectComposer multisampling={dpr > 1.25 ? 0 : 4}>
-            <Bloom luminanceThreshold={0} luminanceSmoothing={0} height={300} />
-            <Noise opacity={0.09} />
-            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+            <Bloom luminanceThreshold={0.92} luminanceSmoothing={0.1} intensity={0.5} height={300} />
+            <Noise opacity={0.02} />
+            <Vignette eskil={false} offset={0.3} darkness={0.35} />
         </EffectComposer>
+
+        <Lighting night={night} />
+        <Stars night={night} />
 
         <CameraControls
             ref={cameraControlsRef}
@@ -247,52 +254,35 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
             Nothing in here needed its own numbers touched; scaling one shared
             ancestor keeps every relative position/size exactly as it was. */}
         <group scale={SCENE_SCALE_FACTOR}>
-            <group
-                position={ textPosition }
-                rotation={[0, -0.75, 0]}
-                scale={textScale}
-            >
-                <Sparkles
-                    size={0.2}
-                />
-                <Text
-                    font="./jost.ttf"
-                    fontSize={ isMobile ? 0.25 : 0.4 }
-                    maxWidth={ 1 }
-                >
-                    Adnaan Bheda
-                    Hi.
-                </Text>
-                <group>
-                    <Svg position={isMobile?[-0.5, -0.7, 0]:[-0.35, -0.9, 0]} onClick={() => openExternal('/cv.pdf')} src={resumeSvg} alt="Resume" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
-                    <Svg position={isMobile?[-0.2, -0.7, 0]:[-0.65, -0.9, 0]} onClick={() => openExternal('https://linkedin.com/in/adnaanb')} src={linkedinSvg} alt="LinkedIn" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
-                </group>
-            </group>
-
+            <group position={roomOffset}>
             <group global rotation={ [ 0, 1, 0 ] }>
                     <group onDoubleClick={resetView} scale={sceneScale} position={scenePosition}>
                         <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
-                            <Lamp position={[0, 5,0]} rotation={[0, -1.5, 0]} scale={2.25} intensity={0.2} />
+                            <SunPatch night={night} />
+                            <WindowView night={night} />
+                            <Lamp on={night} position={[0, 3.06, 0]} rotation={[0, -1.5, 0]} scale={1.6} />
                             <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
                                 <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />
-                                <Monitor ref={meshRef} iframeSrc={iframeSrc} onPosterClick={onPosterClick} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
+                                <Monitor ref={meshRef} iframeSrc={iframeSrc} terminal={terminal} onPosterClick={onPosterClick} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
                                 <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
+                                <DeskProps />
                             </StandingDesk>
                         </Level>
                     </group>
 
             </group>
 
-            {/* Everything casting onto this is static (the lamp swing is too
-                small to read here), so render the shadow once instead of
+            {/* Everything casting onto this is static (the lamp is out of the
+                scene when this renders), so render the shadow once instead of
                 re-rendering the whole scene plus two blur passes every frame. */}
             <ContactShadows
                 frames={ 1 }
                 position-y={ - 1.4 }
-                opacity={ 0.4 }
+                opacity={ 0.3 }
                 scale={ 10 }
-                blur={ 2.4 }
+                blur={ 3.2 }
             />
+            </group>
         </group>
 
     </>

@@ -1,9 +1,11 @@
-import { Loader, PerformanceMonitor, useGLTF } from '@react-three/drei'
+import { PerformanceMonitor, useGLTF } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import Controls from './Controls'
-import Help from './Help'
+import Boot from './Boot'
+import CommandBar from './CommandBar'
+import { commandName, execute } from './commands'
+import Terminal from './Terminal'
 import './style.css'
 
 // Most of the GLBs are Draco-compressed. drei defaults the decoder to
@@ -16,21 +18,32 @@ const Experience = lazy(() => import('./Experience.jsx'))
 
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
-const DEFAULT_SRC = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playsinline=1&playlist=dQw4w9WgXcQ'
+// A long session shouldn't grow the terminal's DOM forever.
+const MAX_LINES = 200
 
 function App() {
     // A live third-party iframe is the single worst thing for frame rate here:
     // on a phone it shares the page's main thread, and a running YouTube player
-    // cost more than the whole 3D scene. So the monitor shows a looping terminal
-    // GIF until a visitor asks for something, and the iframe only exists while
-    // the camera is parked at the monitor.
+    // cost more than the whole 3D scene. So the monitor idles on a looping
+    // terminal GIF, the real terminal only mounts once the camera is parked at
+    // the monitor, and an iframe only exists when a command asks for one.
     const [iframeSrc, setIframeSrc] = useState('')
-    const [requestedSrc, setRequestedSrc] = useState('')
+    const [lines, setLines] = useState([])
     const [cameraAtMonitor, setCameraAtMonitor] = useState(false)
     const [sceneReady, setSceneReady] = useState(false)
-    const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
     const [zoomTrigger, setZoomTrigger] = useState(0)
     const [isZoomed, setIsZoomed] = useState(false)
+    const [night, setNight] = useState(false)
+
+    // The page's own text sits on the sky, so it has to follow the mood too.
+    useEffect(() => {
+        document.documentElement.dataset.mood = night ? 'night' : 'day'
+        document.querySelector('meta[name="theme-color"]').content = night ? '#1d2440' : '#9db4b8'
+    }, [night])
+
+    // A command issued from the room, waiting for the camera to arrive.
+    const queuedCommand = useRef(null)
+    const analytics = useRef(null)
 
     // Pixel ratio is the biggest single GPU lever here: every pass (scene,
     // reflector, bloom, noise, vignette) scales with it, and a Retina laptop
@@ -47,57 +60,93 @@ function App() {
         const ReactGA = await import('react-ga4')
         ReactGA.default.initialize("G-60KGGQ8MXV")
         ReactGA.default.send({ hitType: "pageview", page: window.location.pathname })
-        setAnalyticsLoaded(true)
-    }
-    
-    const handleControlClick = (src) => {
-        setRequestedSrc(src)
-        setIsZoomed(true)
-        if (cameraAtMonitor) {
-            setIframeSrc(src)
-        } else {
-            setZoomTrigger(prev => prev + 1)
-        }
-    }
-
-    // The iframe waits for this so its startup can't stutter the zoom.
-    const handleZoomComplete = () => {
-        setCameraAtMonitor(true)
-        setIframeSrc(requestedSrc)
+        analytics.current = ReactGA.default
     }
 
     // Unloading on the way out, not just hiding: a player left running in the
     // background keeps costing frames for the rest of the visit.
     const handleResetZoom = () => {
+        queuedCommand.current = null
         setIsZoomed(false)
         setCameraAtMonitor(false)
-        setRequestedSrc('')
         setIframeSrc('')
+    }
+
+    // One step back: from a site to the terminal, from the terminal to the room.
+    const handleExit = () => {
+        if (iframeSrc) setIframeSrc('')
+        else handleResetZoom()
+    }
+
+    const runAtMonitor = (input) => {
+        const { lines: output, effect } = execute(input)
+
+        analytics.current?.event({ category: 'Terminal', action: 'Command', label: commandName(input) })
+
+        if (effect === 'clear') {
+            setLines([])
+            return
+        }
+        if (effect === 'exit') {
+            handleExit()
+            return
+        }
+
+        setLines((previous) => [...previous, { kind: 'input', text: input }, ...output].slice(-MAX_LINES))
+        if (effect?.open) setIframeSrc(effect.open)
+        if (effect?.night !== undefined) setNight(effect.night)
+        if (effect?.url) window.open(effect.url, '_blank', 'noopener,noreferrer')
+    }
+
+    const runCommand = (input) => {
+        if (cameraAtMonitor) {
+            // A command from the bar while a site is on screen brings the
+            // terminal back to show its answer.
+            setIframeSrc('')
+            runAtMonitor(input)
+            return
+        }
+
+        queuedCommand.current = input
+        if (!isZoomed) {
+            setIsZoomed(true)
+            setZoomTrigger((previous) => previous + 1)
+        }
+    }
+
+    // The terminal and any iframe wait for this so their startup can't stutter
+    // the zoom.
+    const handleZoomComplete = () => {
+        setCameraAtMonitor(true)
+        if (queuedCommand.current) runAtMonitor(queuedCommand.current)
+        queuedCommand.current = null
+    }
+
+    // Esc can't close a site that holds keyboard focus: its key presses go to
+    // the iframe. The bar's exit button is the way out then.
+    const handleEscape = () => {
+        if (!iframeSrc) return false
+        setIframeSrc('')
+        return true
     }
 
     return (
         <>
-        <Loader
-            containerStyles={{ background: '#241a1a' }}
-            innerStyles={{ background: 'rgba(255, 255, 255, 0.1)' }}
-            barStyles={{ background: '#ffffff', height: '2px' }}
-            dataInterpolation={(p) => `Loading ${Math.round(p)}%`}
-        />
-        {/* Hides the first frames, which hitch while the GPU warms up. */}
-        <div className={sceneReady ? 'scene-cover ready' : 'scene-cover'} />
-        <Help />
-        <Controls currentSrc={requestedSrc || DEFAULT_SRC} setCurrentSrc={handleControlClick} />
-        
-        {/* Back button when zoomed to monitor */}
-        {isZoomed && (
-            <button 
-                className="back-button"
-                onClick={handleResetZoom}
-            >
-                ← Back
+        <Boot ready={sceneReady} />
+        <header className={isZoomed ? 'nameplate hidden' : 'nameplate'}>
+            <h1>Adnaan Bheda</h1>
+            <p>Backend engineer</p>
+        </header>
+        {!isZoomed && (
+            <button type="button" className="mood-toggle" onClick={() => setNight(!night)}>
+                {night ? 'day' : 'night'}
             </button>
         )}
-        
+        <CommandBar
+            isZoomed={isZoomed}
+            onCommand={(command) => command === 'exit' ? handleExit() : runCommand(command)}
+        />
+
         <Canvas
             className="r3f"
             dpr={dpr}
@@ -122,10 +171,15 @@ function App() {
                 <Suspense fallback={null}>
                     <Experience
                         iframeSrc={iframeSrc}
+                        night={night}
+                        terminal={cameraAtMonitor && !iframeSrc
+                            ? <Terminal lines={lines} onCommand={runCommand} />
+                            : null}
                         zoomTrigger={zoomTrigger}
                         onResetZoom={handleResetZoom}
+                        onEscape={handleEscape}
                         onZoomComplete={handleZoomComplete}
-                        onPosterClick={() => handleControlClick(DEFAULT_SRC)}
+                        onPosterClick={() => runCommand('whoami')}
                         onSceneReady={() => setSceneReady(true)}
                         onIntroComplete={loadAnalytics}
                         isZoomed={isZoomed}

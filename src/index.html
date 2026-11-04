@@ -11,6 +11,7 @@
 
     <!-- Preload critical assets -->
     <link rel="preload" href="/jost.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 
     <!--
       The GLBs are only requested once the lazy Experience chunk has downloaded
@@ -35,13 +36,16 @@
     <link rel="preload" href="/draco/draco_wasm_wrapper.js" as="fetch" crossorigin="anonymous">
     <link rel="preload" href="/draco/draco_decoder.wasm" as="fetch" crossorigin="anonymous">
 
+    <!-- The stylesheet arrives with the JS; this keeps first paint dark. -->
+    <style>html { background: #06100b; }</style>
+
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>Adnaan Bheda</title>
-    <meta name="description" content="Adnaan Bheda's portfolio: an interactive 3D desk setup built with React Three Fiber.">
-    <meta name="theme-color" content="#241a1a">
+    <meta name="description" content="Adnaan Bheda, backend engineer. A 3D room with a working terminal on the monitor: type or tap a command to see projects, work and CV.">
+    <meta name="theme-color" content="#9db4b8">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Adnaan Bheda">
-    <meta property="og:description" content="An interactive 3D desk setup built with React Three Fiber.">
+    <meta property="og:description" content="Backend engineer. A 3D room with a working terminal on the monitor.">
     <meta property="og:url" content="https://portfolio.adnaan.me">
     <meta name="twitter:card" content="summary">
 </head>

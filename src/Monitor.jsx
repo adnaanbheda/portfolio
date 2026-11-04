@@ -1,4 +1,4 @@
-import { Html, MeshReflectorMaterial, useGLTF } from "@react-three/drei";
+import { Html, useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { forwardRef, useMemo, useRef } from "react";
 import { Euler, Quaternion, Vector3 } from "three";
@@ -25,7 +25,7 @@ const scratchNormal = new Vector3();
 const scratchPos = new Vector3();
 const scratchToCamera = new Vector3();
 
-const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
+const Monitor = forwardRef(({ iframeSrc, terminal, onPosterClick, ...props }, ref) => {
   const { nodes, materials } = useGLTF("/monitor.glb");
   const iframeRef = useRef(null);
   const screenOverlayRef = useRef(null);
@@ -35,7 +35,7 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
 
   // No fallback src: the parent deliberately leaves this empty until a visitor
   // asks for something and the camera has arrived (see index.jsx). The screen
-  // shows a looping terminal GIF until then.
+  // shows a looping terminal GIF until the camera parks, then the real terminal.
   const src = iframeSrc
 
   // Calculate sizing based on the screen's geometry
@@ -47,9 +47,7 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
             pixelWidth: 1440, 
             pixelHeight: 800, 
             position: [0,0,0], 
-            rotation: [0,0,0],
-            visualWidth: 1,
-            visualHeight: 1
+            rotation: [0,0,0]
         };
     }
 
@@ -90,9 +88,7 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
         pixelWidth,
         pixelHeight: Math.round((pixelWidth * visualHeight) / visualWidth),
         position,
-        rotation,
-        visualWidth,
-        visualHeight
+        rotation
     };
   }, [nodes, canvasWidth]);
 
@@ -145,7 +141,7 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                       position: 'relative',
                       overflow: 'hidden',
                       // WebKit ignores overflow:hidden for a composited child
-                      // (the iframe, promoted by mixBlendMode) inside a 3D
+                      // (the iframe) inside a 3D
                       // transformed ancestor. A mask forces the clip to apply.
                       WebkitMaskImage: '-webkit-radial-gradient(white, black)',
                       isolation: 'isolate',
@@ -153,9 +149,9 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                       backfaceVisibility: 'hidden',
                   }}
               >
-                  {!src && <button
+                  {!src && !terminal && <button
                       type="button"
-                      aria-label="Play video"
+                      aria-label="Open the terminal"
                       onClick={onPosterClick}
                       style={{
                           display: 'block',
@@ -163,10 +159,8 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                           height: '100%',
                           padding: 0,
                           border: 'none',
-                          background: 'none',
+                          background: '#06100b',
                           cursor: 'pointer',
-                          opacity: 0.6,
-                          mixBlendMode: 'screen',
                       }}
                   >
                       {/* A GIF can't be paused, so reduced motion gets its last frame. */}
@@ -179,15 +173,17 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                           />
                       </picture>
                   </button>}
+                  {terminal}
                   {src && <iframe
                       ref={iframeRef}
                       src={src}
+                      title="Project"
                       style={{
+                          display: 'block',
                           width: '100%',
                           height: '100%',
                           border: 'none',
-                          opacity: 0.6,
-                          mixBlendMode: 'screen',
+                          background: '#000',
                       }}
                       allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                       loading="lazy"
@@ -205,33 +201,14 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                           backgroundImage: 'url(/screen-dirt.webp)',
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
-                          opacity: 0.1,
+                          // A site on screen should read as itself, not as
+                          // the scene's dirty glass.
+                          opacity: src ? 0 : 0.1,
                           pointerEvents: 'none',
                           mixBlendMode: 'overlay',
                       }}
                   />
               </Html>
-              
-              {/* Reflective Layer using MeshReflectorMaterial */}
-              <mesh position={[scalingData.position[0], scalingData.position[1], scalingData.position[2]]} rotation={scalingData.rotation}>
-                 <planeGeometry args={[scalingData.visualWidth, scalingData.visualHeight]} />
-                 {/* The reflector re-renders the whole scene into its own
-                     target every frame and then blurs it. With this much blur a
-                     256px target looks the same as 1024px at 1/16 the fill cost. */}
-                 <MeshReflectorMaterial
-                    blur={[300, 100]}
-                    resolution={256}
-                    mixBlur={1}
-                    mixStrength={80} 
-                    roughness={0.1}
-                    depthScale={1.2}
-                    minDepthThreshold={0.4}
-                    maxDepthThreshold={1.4}
-                    color="white"
-                    metalness={0.9} 
-                    mirror={1}
-                 />
-              </mesh>
             </mesh>
             <mesh geometry={nodes['ug650f-b_Material_0'].geometry} material={materials['Material.001']} />
           </group>
