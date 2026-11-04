@@ -30,6 +30,14 @@ body,
   backface-visibility: hidden;
 }
 
+/* Keyboard focus ring for every DOM control over the canvas. */
+.controls button:focus-visible,
+.back-button:focus-visible,
+.help-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 2px;
+}
+
 /* Back button when zoomed to monitor */
 .back-button {
   position: fixed;

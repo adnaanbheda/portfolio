@@ -32,7 +32,10 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
   const wasFacingCamera = useRef(true);
   const canvasWidth = useThree((state) => state.size.width);
 
-  const src = iframeSrc || 'https://open.spotify.com/embed/playlist/37i9dQZEVXcZb9ak6F5ysH?utm_source=generator'
+  // No fallback src: the parent deliberately leaves this empty until the
+  // camera has settled (see index.jsx). A default here used to start loading
+  // a Spotify embed immediately, defeating that deferral.
+  const src = iframeSrc
 
   // Calculate sizing based on the screen's geometry
   const scalingData = useMemo(() => {
@@ -149,7 +152,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                       backfaceVisibility: 'hidden',
                   }}
               >
-                  <iframe
+                  {src && <iframe
                       ref={iframeRef}
                       src={src}
                       style={{
@@ -163,7 +166,7 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
                       loading="lazy"
                       onCanPlay={handleCanPlay}
                       onPointerOver={props.onPointerOver}
-                  />
+                  />}
                   <div
                       style={{
                           position: 'absolute',
@@ -184,9 +187,12 @@ const Monitor = forwardRef(({ iframeSrc, ...props }, ref) => {
               {/* Reflective Layer using MeshReflectorMaterial */}
               <mesh position={[scalingData.position[0], scalingData.position[1], scalingData.position[2]]} rotation={scalingData.rotation}>
                  <planeGeometry args={[scalingData.visualWidth, scalingData.visualHeight]} />
+                 {/* The reflector re-renders the whole scene into its own
+                     target every frame and then blurs it. With this much blur a
+                     256px target looks the same as 1024px at 1/16 the fill cost. */}
                  <MeshReflectorMaterial
                     blur={[300, 100]}
-                    resolution={1024}
+                    resolution={256}
                     mixBlur={1}
                     mixStrength={80} 
                     roughness={0.1}

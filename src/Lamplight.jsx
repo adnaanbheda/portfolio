@@ -25,7 +25,6 @@ export default function Model(props) {
       gsap.from(pivotRef.current.rotation, {
         z: rotationInRadians,
         duration: 1,
-        transformOrigin: "top center",
         ease: "power1.inOut",
         repeat: -1,
         yoyo: true

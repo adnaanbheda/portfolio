@@ -16,23 +16,35 @@
     <!--
       The GLBs are only requested once the lazy Experience chunk has downloaded
       and evaluated, which is three round trips deep. Preloading them here starts
-      the transfers alongside the JS instead of after it. No crossorigin attribute:
-      these are same-origin and GLTFLoader fetches them in same-origin credentials
-      mode, so adding it would mismatch the preload and double-fetch.
+      the transfers alongside the JS instead of after it.
+
+      crossorigin="anonymous" is required even though these are same-origin:
+      three's FileLoader calls fetch() (mode "cors", credentials "same-origin"),
+      and a preload only matches when it was made in that same mode. Without the
+      attribute the preload is "no-cors"/"include", Chrome reports "preload ...
+      is not used because the request credentials mode does not match", and
+      every file is requested twice.
     -->
-    <link rel="preload" href="/level.glb" as="fetch">
-    <link rel="preload" href="/standing_desk.glb" as="fetch">
-    <link rel="preload" href="/monitor.glb" as="fetch">
-    <link rel="preload" href="/lamplight-transformed.glb" as="fetch">
-    <link rel="preload" href="/snakeplant.glb" as="fetch">
-    <link rel="preload" href="/speakers.glb" as="fetch">
+    <link rel="preload" href="/level.glb" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/standing_desk.glb" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/monitor.glb" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/lamplight-transformed.glb" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/snakeplant.glb" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/speakers.glb" as="fetch" crossorigin="anonymous">
 
     <!-- Draco decoder, needed the moment the first compressed mesh is parsed -->
-    <link rel="preload" href="/draco/draco_wasm_wrapper.js" as="fetch">
-    <link rel="preload" href="/draco/draco_decoder.wasm" as="fetch">
+    <link rel="preload" href="/draco/draco_wasm_wrapper.js" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="/draco/draco_decoder.wasm" as="fetch" crossorigin="anonymous">
 
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <title>Adnaan Bheda</title>
+    <meta name="description" content="Adnaan Bheda's portfolio: an interactive 3D desk setup built with React Three Fiber.">
+    <meta name="theme-color" content="#241a1a">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Adnaan Bheda">
+    <meta property="og:description" content="An interactive 3D desk setup built with React Three Fiber.">
+    <meta property="og:url" content="https://portfolio.adnaan.me">
+    <meta name="twitter:card" content="summary">
 </head>
 
 <body>

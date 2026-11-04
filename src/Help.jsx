@@ -1,43 +1,50 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+const ITEMS = [
+    ['Buttons', 'Load a site onto the monitor and zoom in'],
+    ['Drag', 'Rotate camera'],
+    ['Right drag', 'Pan camera'],
+    ['Scroll', 'Zoom in / out'],
+    ['Double click', 'Reset view'],
+    ['Esc', 'Reset view'],
+]
 
 export default function Help() {
     const [open, setOpen] = useState(false)
 
+    useEffect(() => {
+        if (!open) return
+        const onKey = (event) => {
+            if (event.key === 'Escape') setOpen(false)
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+    }, [open])
+
     return (
         <>
-            <div 
+            <button
+                type="button"
                 className="help-button"
                 onClick={() => setOpen(!open)}
                 title="Help & Instructions"
+                aria-label="Help and instructions"
+                aria-expanded={open}
             >
                 ?
-            </div>
+            </button>
 
             {open && (
                 <>
                     <div className="help-backdrop" onClick={() => setOpen(false)} />
-                    <div className="help-overlay">
+                    <div className="help-overlay" role="dialog" aria-label="Instructions">
                         <h3>Instructions</h3>
-                        <div className="help-item">
-                            <span className="help-key">Hover Monitor</span>
-                            <span>Zoom into Monitor</span>
-                        </div>
-                        <div className="help-item">
-                            <span className="help-key">Double Click</span>
-                            <span>Zoom Out / Reset View</span>
-                        </div>
-                        <div className="help-item">
-                            <span className="help-key">Drag</span>
-                            <span>Rotate Camera</span>
-                        </div>
-                        <div className="help-item">
-                            <span className="help-key">Scroll</span>
-                            <span>Zoom In / Out</span>
-                        </div>
-                        <div className="help-item">
-                            <span className="help-key">Right Click</span>
-                            <span>Pan Camera</span>
-                        </div>
+                        {ITEMS.map(([key, action]) => (
+                            <div className="help-item" key={key}>
+                                <span className="help-key">{key}</span>
+                                <span>{action}</span>
+                            </div>
+                        ))}
                     </div>
                 </>
             )}
