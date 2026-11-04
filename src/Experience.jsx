@@ -33,7 +33,8 @@ const LEVEL_YAW = Math.PI + 0.5
 // open corner; elevation is atan(1/sqrt(2)) = 35.26 degrees, which foreshortens
 // all three axes equally and puts the floor edges at 30 degrees on screen.
 const ISO_AZIMUTH = SCENE_YAW + LEVEL_YAW + Math.PI / 4 - Math.PI * 2
-const ISO_POLAR = Math.PI / 2 - Math.atan(1 / Math.SQRT2)
+const ISO_ELEVATION = Math.atan(1 / Math.SQRT2)
+const ISO_POLAR = Math.PI / 2 - ISO_ELEVATION
 
 // Orthographic distance doesn't change the image, it only has to clear the
 // scene so nothing lands behind the near plane.
@@ -45,7 +46,7 @@ const CAMERA_DISTANCE = 6 * SCENE_SCALE_FACTOR
 // by itself - see homeZoom.
 const HOME_FRAMES = {
     desktop: { target: [106, -40, 37], width: 640, height: 470 },
-    mobile: { target: [0, -20, 0], width: 240, height: 380 },
+    mobile: { target: [18, -15, -15], width: 205, height: 410 },
 }
 
 // The intro zooms in from this fraction of the home zoom. Zoom is the only
@@ -81,8 +82,8 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
 
     // Responsive logic
     const isMobile = size.width < 768
-    const textPosition = isMobile ? [-0.25, 1.5, 0] : [-1.5, 0.5, 0]
-    const textScale = isMobile ? 0.6 : 1
+    const textPosition = isMobile ? [-0.5, 2.32, 0.13] : [-1.42, 1.34, 0.31]
+    const textScale = isMobile ? 0.68 : 1.3
     const sceneScale = isMobile ? 0.55 : 1
     const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
 
@@ -244,9 +245,13 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
             Nothing in here needed its own numbers touched; scaling one shared
             ancestor keeps every relative position/size exactly as it was. */}
         <group scale={SCENE_SCALE_FACTOR}>
-            <group
+            {/* Not just hidden: it sits in the monitor's sightline, and three.js
+                still raycasts invisible objects, so the links would stay clickable. */}
+            {!isZoomed && <group
                 position={ textPosition }
-                rotation={[0, ISO_AZIMUTH, 0]}
+                // Faces the home camera head-on: only the room is isometric, and
+                // any tilt away from the view squashes the lettering.
+                rotation={[-ISO_ELEVATION, ISO_AZIMUTH, 0, 'YXZ']}
                 scale={textScale}
             >
                 <Sparkles
@@ -264,7 +269,7 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onIntr
                     <Svg position={isMobile?[-0.5, -0.7, 0]:[-0.35, -0.9, 0]} onClick={() => openExternal('/cv.pdf')} src={resumeSvg} alt="Resume" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
                     <Svg position={isMobile?[-0.2, -0.7, 0]:[-0.65, -0.9, 0]} onClick={() => openExternal('https://linkedin.com/in/adnaanb')} src={linkedinSvg} alt="LinkedIn" scale={0.001} onPointerOver={setPointer(true)} onPointerOut={setPointer(false)} />
                 </group>
-            </group>
+            </group>}
 
             <group global rotation={ [ 0, SCENE_YAW, 0 ] }>
                     <group onDoubleClick={resetView} scale={sceneScale} position={scenePosition}>
