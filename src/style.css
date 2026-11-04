@@ -157,34 +157,3 @@ body,
   opacity: 0;
   visibility: hidden;
 }
-
-/* The monitor's idle screen. Only a transform animates, so this runs on the
-   compositor with no main-thread work: anything heavier here would give back
-   what dropping the live iframe gained. The tile is scaled up 8x because the
-   screen is drawn at a small fraction of its CSS size, and finer grain averages
-   out to flat grey. Offsets stay within the -512px inset so no edge shows. */
-.tv-static {
-  position: absolute;
-  inset: -512px;
-  background: url(/tv-static.png) 0 0 / 512px 512px;
-  image-rendering: pixelated;
-  will-change: transform;
-  animation: tv-static 0.66s step-end infinite;
-}
-
-@keyframes tv-static {
-  0% { transform: translate(0, 0); }
-  12.5% { transform: translate(-136px, 88px); }
-  25% { transform: translate(232px, -304px); }
-  37.5% { transform: translate(-368px, -168px); }
-  50% { transform: translate(104px, 392px); }
-  62.5% { transform: translate(-456px, 256px); }
-  75% { transform: translate(312px, 40px); }
-  87.5% { transform: translate(-72px, -424px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tv-static {
-    animation: none;
-  }
-}

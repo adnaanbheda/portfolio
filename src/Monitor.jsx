@@ -35,7 +35,7 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
 
   // No fallback src: the parent deliberately leaves this empty until a visitor
   // asks for something and the camera has arrived (see index.jsx). The screen
-  // shows TV static until then.
+  // shows a looping terminal GIF until then.
   const src = iframeSrc
 
   // Calculate sizing based on the screen's geometry
@@ -159,19 +159,25 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                       onClick={onPosterClick}
                       style={{
                           display: 'block',
-                          position: 'relative',
                           width: '100%',
                           height: '100%',
                           padding: 0,
                           border: 'none',
                           background: 'none',
                           cursor: 'pointer',
-                          overflow: 'hidden',
                           opacity: 0.6,
                           mixBlendMode: 'screen',
                       }}
                   >
-                      <div className="tv-static" />
+                      {/* A GIF can't be paused, so reduced motion gets its last frame. */}
+                      <picture>
+                          <source media="(prefers-reduced-motion: reduce)" srcSet="/monitor-terminal.png" />
+                          <img
+                              src="/monitor-terminal.gif"
+                              alt=""
+                              style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                      </picture>
                   </button>}
                   {src && <iframe
                       ref={iframeRef}

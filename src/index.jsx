@@ -21,9 +21,9 @@ const DEFAULT_SRC = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1
 function App() {
     // A live third-party iframe is the single worst thing for frame rate here:
     // on a phone it shares the page's main thread, and a running YouTube player
-    // cost more than the whole 3D scene. So the monitor shows TV static until
-    // a visitor asks for something, and the iframe only exists while the camera
-    // is parked at the monitor.
+    // cost more than the whole 3D scene. So the monitor shows a looping terminal
+    // GIF until a visitor asks for something, and the iframe only exists while
+    // the camera is parked at the monitor.
     const [iframeSrc, setIframeSrc] = useState('')
     const [requestedSrc, setRequestedSrc] = useState('')
     const [cameraAtMonitor, setCameraAtMonitor] = useState(false)
