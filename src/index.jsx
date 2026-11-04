@@ -100,8 +100,7 @@ function App() {
                     far: 2000,
                     // 100x the framing distance the scene was authored at - keep in
                     // sync with SCENE_SCALE_FACTOR in Experience.jsx (see there for why).
-                    // Angled to look isometric: 45 degrees off the room's walls, 35 degrees up.
-                    position: [-322, 301, 279]
+                    position: [-300, 150, 400]
                 }}
             >
                 <Suspense fallback={null}>
