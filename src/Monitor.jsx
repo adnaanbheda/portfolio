@@ -35,7 +35,7 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
 
   // No fallback src: the parent deliberately leaves this empty until a visitor
   // asks for something and the camera has arrived (see index.jsx). The screen
-  // shows a static poster until then.
+  // shows TV static until then.
   const src = iframeSrc
 
   // Calculate sizing based on the screen's geometry
@@ -159,21 +159,19 @@ const Monitor = forwardRef(({ iframeSrc, onPosterClick, ...props }, ref) => {
                       onClick={onPosterClick}
                       style={{
                           display: 'block',
+                          position: 'relative',
                           width: '100%',
                           height: '100%',
                           padding: 0,
                           border: 'none',
                           background: 'none',
                           cursor: 'pointer',
+                          overflow: 'hidden',
                           opacity: 0.6,
                           mixBlendMode: 'screen',
                       }}
                   >
-                      <img
-                          src="/monitor-poster.jpg"
-                          alt=""
-                          style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
+                      <div className="tv-static" />
                   </button>}
                   {src && <iframe
                       ref={iframeRef}
