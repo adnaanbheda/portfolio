@@ -64,7 +64,31 @@ function whenSettled(controls, backstopMs, onSettled)
     return cleanUp
 }
 
-export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoomComplete, onPosterClick, isZoomed })
+// A frame slower than this counts as a hitch, and this many clean frames in a
+// row as warmed up. Slow devices may never get there, hence the backstop.
+const HITCH_MS = 100
+const STABLE_FRAMES = 5
+const WARM_UP_BACKSTOP_MS = 2500
+
+// Calls onStable once frames have stopped hitching. Returns a cancel.
+function whenFramesStable(onStable)
+{
+    const deadline = performance.now() + WARM_UP_BACKSTOP_MS
+    let last = performance.now()
+    let clean = 0
+    let frame
+
+    const tick = (now) => {
+        clean = now - last < HITCH_MS ? clean + 1 : 0
+        last = now
+        if (clean >= STABLE_FRAMES || now > deadline) onStable()
+        else frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+}
+
+export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed })
 {
     const meshRef = useRef()
     const cameraControlsRef = useRef()
@@ -74,7 +98,7 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
     // Parent callbacks are fresh closures every render, but they get called
     // from listeners set up once. Always go through the latest.
     const callbacks = useRef({})
-    callbacks.current = { onResetZoom, onZoomComplete }
+    callbacks.current = { onResetZoom, onZoomComplete, onSceneReady, onIntroComplete }
 
     const cancelZoomWatch = useRef(null)
 
@@ -93,28 +117,46 @@ export default function Experience({ iframeSrc, zoomTrigger, onResetZoom, onZoom
     // framing once the scene is on screen. reset() targets the state
     // camera-controls saved on construction (the Canvas camera position in
     // index.jsx), so the end pose and the Esc/Back pose are the same.
+    //
+    // The first frames are the worst ones: shaders compile and textures upload
+    // as each thing is first drawn, including the reflector and post-processing
+    // passes. Those frames render behind the cover in index.jsx, and the glide
+    // only starts once they're done, so no one sees them.
     useEffect(() => {
         const controls = cameraControlsRef.current
         if (!controls) return
 
         const defaultSmoothTime = controls.smoothTime
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+        let startTimer
         let cancelSettled = () => {}
 
-        controls.rotate(0.55, -0.35, false)
-        controls.dolly(-controls.distance * 0.6, false)
-        controls.smoothTime = 0.9
+        if (!reducedMotion) {
+            controls.rotate(0.55, -0.35, false)
+            controls.dolly(-controls.distance * 0.6, false)
+            controls.smoothTime = 0.9
+        }
 
-        // Give drei's <Loader> fade a moment so the move is actually seen.
-        const startTimer = setTimeout(() => {
-            cancelSettled = whenSettled(controls, 6000, () => {
-                controls.smoothTime = defaultSmoothTime
-            })
-            controls.reset(true)
-        }, 350)
+        const cancelStable = whenFramesStable(() => {
+            callbacks.current.onSceneReady?.()
+            if (reducedMotion) {
+                callbacks.current.onIntroComplete?.()
+                return
+            }
+
+            // Give the cover's fade a moment so the move is actually seen.
+            startTimer = setTimeout(() => {
+                cancelSettled = whenSettled(controls, 6000, () => {
+                    controls.smoothTime = defaultSmoothTime
+                    callbacks.current.onIntroComplete?.()
+                })
+                controls.reset(true)
+            }, 350)
+        })
 
         return () => {
+            cancelStable()
             clearTimeout(startTimer)
             cancelSettled()
             controls.smoothTime = defaultSmoothTime

@@ -143,3 +143,17 @@ body,
     flex-shrink: 0;
   }
 }
+
+/* Same colour as the drei Loader, which it sits under, so the handover is seamless. */
+.scene-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #241a1a;
+  transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+}
+
+.scene-cover.ready {
+  opacity: 0;
+  visibility: hidden;
+}

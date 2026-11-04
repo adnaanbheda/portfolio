@@ -1,6 +1,6 @@
 import { Loader, PerformanceMonitor, useGLTF } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import Controls from './Controls'
 import Help from './Help'
@@ -27,6 +27,7 @@ function App() {
     const [iframeSrc, setIframeSrc] = useState('')
     const [requestedSrc, setRequestedSrc] = useState('')
     const [cameraAtMonitor, setCameraAtMonitor] = useState(false)
+    const [sceneReady, setSceneReady] = useState(false)
     const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
     const [zoomTrigger, setZoomTrigger] = useState(0)
     const [isZoomed, setIsZoomed] = useState(false)
@@ -40,19 +41,14 @@ function App() {
     const maxDpr = Math.min(window.devicePixelRatio || 1, 2)
     const [dpr, setDpr] = useState(Math.min(maxDpr, 1.5))
 
-    useEffect(() => {
-        // Defer Google Analytics loading
-        const loadAnalytics = async () => {
-            const ReactGA = await import('react-ga4')
-            ReactGA.default.initialize("G-60KGGQ8MXV")
-            ReactGA.default.send({ hitType: "pageview", page: window.location.pathname })
-            setAnalyticsLoaded(true)
-        }
-        
-        // Load analytics after a short delay
-        const timer = setTimeout(loadAnalytics, 2000)
-        return () => clearTimeout(timer)
-    }, [])
+    // Analytics waits for the intro glide to finish: parsing its script on a
+    // timer used to land right in the middle of it.
+    const loadAnalytics = async () => {
+        const ReactGA = await import('react-ga4')
+        ReactGA.default.initialize("G-60KGGQ8MXV")
+        ReactGA.default.send({ hitType: "pageview", page: window.location.pathname })
+        setAnalyticsLoaded(true)
+    }
     
     const handleControlClick = (src) => {
         setRequestedSrc(src)
@@ -87,6 +83,8 @@ function App() {
             barStyles={{ background: '#ffffff', height: '2px' }}
             dataInterpolation={(p) => `Loading ${Math.round(p)}%`}
         />
+        {/* Hides the first frames, which hitch while the GPU warms up. */}
+        <div className={sceneReady ? 'scene-cover ready' : 'scene-cover'} />
         <Help />
         <Controls currentSrc={requestedSrc || DEFAULT_SRC} setCurrentSrc={handleControlClick} />
         
@@ -128,6 +126,8 @@ function App() {
                         onResetZoom={handleResetZoom}
                         onZoomComplete={handleZoomComplete}
                         onPosterClick={() => handleControlClick(DEFAULT_SRC)}
+                        onSceneReady={() => setSceneReady(true)}
+                        onIntroComplete={loadAnalytics}
                         isZoomed={isZoomed}
                     />
                     {/* Inside the Suspense on purpose: it only starts sampling
