@@ -1,7 +1,7 @@
 import { CameraControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
 import { useEffect, useRef, useState } from 'react'
-import { Vector3 } from 'three'
+import { Box3, Vector3 } from 'three'
 import Backdrop from './Backdrop'
 import DeskProps from './DeskProps'
 import LampPost from './LampPost'
@@ -70,6 +70,21 @@ function whenSettled(controls, backstopMs, onSettled)
     return cleanUp
 }
 
+// The desk view: the monitor with room around it, seen a little from the side
+// and above so it reads as a desk rather than a screen. Padding is in monitor
+// widths, which keeps the framing right on a phone too.
+const DESK_PADDING = { side: 0.55, top: 0.3, bottom: 0.7 }
+const DESK_AZIMUTH = -Math.PI / 2 + 0.3
+const DESK_POLAR = 1.35
+
+// The click target for the desk, in the desk model's own units.
+const DESK_HIT_POSITION = [0, 0.75, 0]
+const DESK_HIT_SIZE = [1, 1.5, 2.2]
+
+// How far a press can travel, in pixels, and still count as a click on the
+// desk rather than a drag of the room.
+const CLICK_SLOP = 5
+
 // A frame slower than this counts as a hitch, and this many clean frames in a
 // row as warmed up. Slow devices may never get there, hence the backstop.
 const HITCH_MS = 100
@@ -94,7 +109,7 @@ function whenFramesStable(onStable)
     return () => cancelAnimationFrame(frame)
 }
 
-export default function Experience({ iframeSrc, terminal, night, sunset, onRoseClick, zoomTrigger, onResetZoom, onEscape, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed })
+export default function Experience({ iframeSrc, terminal, night, sunset, onRoseClick, zoomTrigger, onStepBack, onDeskClick, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed, atDesk })
 {
     const meshRef = useRef()
     const cameraControlsRef = useRef()
@@ -103,7 +118,7 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
     // Parent callbacks are fresh closures every render, but they get called
     // from listeners set up once. Always go through the latest.
     const callbacks = useRef({})
-    callbacks.current = { onResetZoom, onEscape, onZoomComplete, onSceneReady, onIntroComplete }
+    callbacks.current = { onStepBack, onZoomComplete, onSceneReady, onIntroComplete }
 
     const cancelZoomWatch = useRef(null)
     const [introDone, setIntroDone] = useState(false)
@@ -113,10 +128,7 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
     // switch, every resize).
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key !== 'Escape') return
-            // Closing a site on the monitor comes first; the view only resets
-            // when there was nothing to close.
-            if (!callbacks.current.onEscape?.()) resetView()
+            if (event.key === 'Escape') stepBack()
         }
         document.addEventListener('keydown', handleKeyDown)
         return () => document.removeEventListener('keydown', handleKeyDown)
@@ -179,18 +191,18 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
         }
     }, [zoomTrigger])
     
-    // Handle back button click from parent. Skipped on mount: the intro
-    // effect above owns the first reset.
+    // Going to the monitor is zoomTrigger's job. This covers the other two
+    // stops. Skipped on mount: the intro effect above owns the first reset.
     const hasMounted = useRef(false)
     useEffect(() => {
         if (!hasMounted.current) {
             hasMounted.current = true
             return
         }
-        if (isZoomed === false && cameraControlsRef.current) {
-            moveCameraToDefault()
-        }
-    }, [isZoomed])
+        if (isZoomed || !cameraControlsRef.current) return
+        if (atDesk) moveToDesk()
+        else moveCameraToDefault()
+    }, [isZoomed, atDesk])
     
     // Responsive logic
     const isMobile = size.width < 768
@@ -200,15 +212,33 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
     const roomOffset = isMobile ? [0, 0.9, 0] : [-1.25, 0.72, -0.94]
     const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
     
-    const moveToMonitor = () => {
-        cameraControlsRef.current.rotateAzimuthTo(-Math.PI/2, true);
-        cameraControlsRef.current.fitToBox(meshRef.current, true);
-        cameraControlsRef.current.enabled = false;
-
+    // fitToBox snaps to the nearest axis, so turn to face the monitor first.
+    const fitMonitor = (padding) => {
+        const controls = cameraControlsRef.current
+        controls.rotateTo(-Math.PI / 2, Math.PI / 2, true)
+        controls.fitToBox(meshRef.current, true, padding)
+        controls.enabled = false
         cancelZoomWatch.current?.()
+    }
+
+    const moveToMonitor = () => {
+        fitMonitor()
         cancelZoomWatch.current = whenSettled(cameraControlsRef.current, 3500, () => {
             callbacks.current.onZoomComplete?.()
         })
+    }
+
+    // No drag here: the mouse lean does the looking around.
+    const moveToDesk = () => {
+        const { side, top, bottom } = DESK_PADDING
+        const width = new Box3().setFromObject(meshRef.current).getSize(new Vector3()).z
+        fitMonitor({
+            paddingLeft: width * side,
+            paddingRight: width * side,
+            paddingTop: width * top,
+            paddingBottom: width * bottom,
+        })
+        cameraControlsRef.current.rotateTo(DESK_AZIMUTH, DESK_POLAR, true)
     }
 
     const moveCameraToDefault = () => {
@@ -220,12 +250,14 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
         camera.updateWorldMatrix(true, true);
     }
 
-    // Esc and double-click both need to clear isZoomed in the parent too,
-    // otherwise the camera resets but the DOM "Back" button stays up.
-    const resetView = () => {
-        moveCameraToDefault()
-        callbacks.current.onResetZoom?.()
+    // The parent owns where the camera is, and moving it follows from that.
+    // In the room there's nowhere to step back to, so just undo any orbiting.
+    const stepBack = () => {
+        if (!callbacks.current.onStepBack?.()) moveCameraToDefault()
     }
+
+    const inRoom = !atDesk && !isZoomed
+    const setCursor = (cursor) => { document.body.style.cursor = cursor }
 
     return <>
 
@@ -253,7 +285,7 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
         <group scale={SCENE_SCALE_FACTOR}>
             <group position={roomOffset}>
             <group global rotation={ [ 0, 1, 0 ] }>
-                    <group onDoubleClick={resetView} scale={sceneScale} position={scenePosition}>
+                    <group onDoubleClick={stepBack} scale={sceneScale} position={scenePosition}>
                         <Room scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
                             <SunPatch night={night} />
                             <WindowView night={night} />
@@ -265,6 +297,27 @@ export default function Experience({ iframeSrc, terminal, night, sunset, onRoseC
                                 <Monitor ref={meshRef} iframeSrc={iframeSrc} terminal={terminal} onPosterClick={onPosterClick} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
                                 <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                                 <DeskProps />
+                                {/* One plain box to click, rather than a handler on
+                                    the models: a pointer move raycasts everything
+                                    under a handler, and the speakers alone are
+                                    63,000 triangles. It swallows double-clicks,
+                                    which would otherwise step straight back out. */}
+                                <mesh
+                                    visible={false}
+                                    position={DESK_HIT_POSITION}
+                                    scale={DESK_HIT_SIZE}
+                                    onClick={(event) => {
+                                        if (event.delta > CLICK_SLOP) return
+                                        event.stopPropagation()
+                                        setCursor('auto')
+                                        if (inRoom) onDeskClick()
+                                    }}
+                                    onDoubleClick={(event) => event.stopPropagation()}
+                                    onPointerOver={() => { if (inRoom) setCursor('pointer') }}
+                                    onPointerOut={() => setCursor('auto')}
+                                >
+                                    <boxGeometry />
+                                </mesh>
                             </StandingDesk>
                         </Room>
                     </group>

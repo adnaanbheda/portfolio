@@ -39,6 +39,9 @@ function App() {
     const [sceneReady, setSceneReady] = useState(false)
     const [zoomTrigger, setZoomTrigger] = useState(0)
     const [isZoomed, setIsZoomed] = useState(false)
+    // The view between the room and the monitor. Stays on while the camera is
+    // at the monitor, so stepping back from there lands here.
+    const [atDesk, setAtDesk] = useState(false)
     const [night, setNight] = useState(false)
     // A counter, like zoomTrigger: each increment plays the sunset once.
     const [sunset, setSunset] = useState(0)
@@ -74,17 +77,22 @@ function App() {
 
     // Unloading on the way out, not just hiding: a player left running in the
     // background keeps costing frames for the rest of the visit.
-    const handleResetZoom = () => {
+    const leaveMonitor = () => {
         queuedCommand.current = null
         setIsZoomed(false)
         setCameraAtMonitor(false)
         setIframeSrc('')
     }
 
-    // One step back: from a site to the terminal, from the terminal to the room.
-    const handleExit = () => {
+    // One step back: from a site to the terminal, from the terminal to wherever
+    // the visitor came from, from the desk to the room. False when already in
+    // the room, with nothing to step back from.
+    const stepBack = () => {
         if (iframeSrc) setIframeSrc('')
-        else handleResetZoom()
+        else if (isZoomed) leaveMonitor()
+        else if (atDesk) setAtDesk(false)
+        else return false
+        return true
     }
 
     const runAtMonitor = (input) => {
@@ -97,7 +105,7 @@ function App() {
             return
         }
         if (effect === 'exit') {
-            handleExit()
+            stepBack()
             return
         }
 
@@ -106,7 +114,8 @@ function App() {
         if (effect?.night !== undefined) setNight(effect.night)
         // Back out to the room: from the monitor there's no sky to watch.
         if (effect?.sunset) {
-            handleResetZoom()
+            leaveMonitor()
+            setAtDesk(false)
             setSunset((previous) => previous + 1)
             clearTimeout(nightfall.current)
             nightfall.current = setTimeout(() => setNight(true), SUNSET_MS)
@@ -138,19 +147,11 @@ function App() {
         queuedCommand.current = null
     }
 
-    // Esc can't close a site that holds keyboard focus: its key presses go to
-    // the iframe. The bar's exit button is the way out then.
-    const handleEscape = () => {
-        if (!iframeSrc) return false
-        setIframeSrc('')
-        return true
-    }
-
     return (
         <>
         <Boot ready={sceneReady} />
         {MoodPanel && <Suspense fallback={null}><MoodPanel /></Suspense>}
-        <header className={isZoomed ? 'nameplate hidden' : 'nameplate'}>
+        <header className={isZoomed || atDesk ? 'nameplate hidden' : 'nameplate'}>
             <h1>Adnaan Bheda</h1>
             <p>Backend engineer</p>
         </header>
@@ -162,9 +163,11 @@ function App() {
                 {night ? 'day' : 'night'}
             </button>
         )}
+        {/* Esc can't close a site that holds keyboard focus: its key presses go
+            to the iframe. The bar's exit button is the way out then. */}
         <CommandBar
-            isZoomed={isZoomed}
-            onCommand={(command) => command === 'exit' ? handleExit() : runCommand(command)}
+            canExit={isZoomed || atDesk}
+            onCommand={(command) => command === 'exit' ? stepBack() : runCommand(command)}
         />
 
         <Canvas
@@ -198,13 +201,14 @@ function App() {
                             ? <Terminal lines={lines} onCommand={runCommand} />
                             : null}
                         zoomTrigger={zoomTrigger}
-                        onResetZoom={handleResetZoom}
-                        onEscape={handleEscape}
+                        onStepBack={stepBack}
+                        onDeskClick={() => setAtDesk(true)}
                         onZoomComplete={handleZoomComplete}
                         onPosterClick={() => runCommand('whoami')}
                         onSceneReady={() => setSceneReady(true)}
                         onIntroComplete={loadAnalytics}
                         isZoomed={isZoomed}
+                        atDesk={atDesk}
                     />
                     {/* Inside the Suspense on purpose: it only starts sampling
                         once the scene is mounted. Outside, it measured the
