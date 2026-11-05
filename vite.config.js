@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
 import { transformWithEsbuild } from 'vite'
 import { compression } from 'vite-plugin-compression2'
@@ -36,6 +38,45 @@ function preloadSceneChunks(names) {
     }
 }
 
+// Lets the dev-only lighting panel save to src/moods.json. The dev server is open
+// to the LAN, so only this machine may write, and the custom header stops another
+// site's page in this browser from posting here.
+function saveMoods() {
+    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1']
+    const sections = ['day', 'lightColours', 'night', 'planet', 'sky']
+
+    return {
+        name: 'save-moods',
+        apply: 'serve',
+        configureServer(server) {
+            server.middlewares.use('/__save-moods', (request, response) => {
+                const finish = (status, message) => {
+                    response.statusCode = status
+                    response.end(message)
+                }
+
+                const allowed = request.method === 'POST'
+                    && request.headers['x-save-moods'] === '1'
+                    && local.includes(request.socket.remoteAddress)
+                if (!allowed) return finish(403, 'Saving is only open to this machine')
+
+                let body = ''
+                request.on('data', (chunk) => { body += chunk })
+                request.on('end', async () => {
+                    try {
+                        const moods = JSON.parse(body)
+                        if (Object.keys(moods).sort().join() !== sections.join()) return finish(400, 'Unexpected sections')
+                        await writeFile(resolve(server.config.root, 'moods.json'), `${JSON.stringify(moods, null, 4)}\n`)
+                        finish(200, 'Saved')
+                    } catch (error) {
+                        finish(400, error.message)
+                    }
+                })
+            })
+        },
+    }
+}
+
 export default {
     root: 'src/',
     publicDir: '../public/',
@@ -46,6 +87,8 @@ export default {
 
         // React support
         react(),
+
+        saveMoods(),
 
         preloadSceneChunks(['Experience', 'vendor-three', 'vendor-r3f', 'vendor-postprocessing']),
 

@@ -159,7 +159,7 @@ const Monitor = forwardRef(({ iframeSrc, terminal, onPosterClick, ...props }, re
                           height: '100%',
                           padding: 0,
                           border: 'none',
-                          background: '#06100b',
+                          background: '#17130f',
                           cursor: 'pointer',
                       }}
                   >

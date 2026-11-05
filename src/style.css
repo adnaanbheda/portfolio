@@ -21,22 +21,23 @@
   font-display: swap;
 }
 
-/* Daylight outside the monitor, phosphor inside it: anything that is part of
-   the terminal, the command bar included, is dark glass. */
+/* The terminal belongs to the room: warm ink and cream, with the parapet's
+   colours for accents. Anything part of it, the command bar included, sits on
+   --glass. */
 :root {
-  --sky: #9db4b8;
+  --sky: #bcc9c4;
   --ink: #15302f;
-  --glass: #06100b;
-  --phosphor: #7df2a0;
-  --phosphor-dim: #4fa873;
-  --amber: #f0b64a;
-  --error: #ff9d7a;
+  --glass: #17130f;
+  --text: #efe3c8;
+  --text-dim: #a4947a;
+  --amber: #dfae57;
+  --error: #d98a68;
   --sans: 'Jost', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 :root[data-mood='night'] {
-  --sky: #1d2440;
+  --sky: #17214a;
   --ink: #f2e3c6;
 }
 
@@ -136,7 +137,7 @@ body,
   box-sizing: border-box;
   border: none;
   background: none;
-  color: var(--phosphor);
+  color: var(--text);
   font: 500 17px/1 var(--sans);
   text-decoration: none;
   cursor: pointer;
@@ -146,7 +147,7 @@ body,
 @media (hover: hover) {
   .command-bar button:hover,
   .command-bar a:hover {
-    background: var(--phosphor);
+    background: var(--amber);
     color: var(--glass);
   }
 }
@@ -162,18 +163,43 @@ body,
 /* Inside the monitor. Sizes are in the Html's own pixels, which the 3D transform
    scales down: 26px here is about 13px on a phone. See pixelWidth in Monitor.jsx. */
 .terminal {
+  position: relative;
+  --pad-y: 1.1em;
+  --pad-x: 1.5em;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 1em 1.2em;
+  padding: var(--pad-y) var(--pad-x);
   overflow-y: auto;
   overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   background: var(--glass);
-  color: var(--phosphor);
-  font: 400 22px/1.4 var(--mono);
-  text-shadow: 0 0 0.5em rgba(125, 242, 160, 0.35);
+  color: var(--text);
+  font: 400 21px/1.55 var(--mono);
   cursor: text;
+}
+
+/* A strip of the parapet's broken tile, staying put as the text scrolls. */
+.terminal::before {
+  content: '';
+  position: sticky;
+  z-index: 1;
+  top: calc(var(--pad-y) * -1);
+  display: block;
+  height: 0.5em;
+  margin: calc(var(--pad-y) * -1) calc(var(--pad-x) * -1) 1.1em;
+  background:
+    linear-gradient(90deg,
+      #c9a657 0 7%, #17130f 7% 7.6%, #e4d8bd 7.6% 11%, #17130f 11% 11.6%,
+      #b9764f 11.6% 20%, #17130f 20% 20.6%, #5f9184 20.6% 27%, #17130f 27% 27.6%,
+      #e4d8bd 27.6% 33%, #17130f 33% 33.6%, #3f6a8f 33.6% 42%, #17130f 42% 42.6%,
+      #c9a657 42.6% 48%, #17130f 48% 48.6%, #9c4a45 48.6% 56%, #17130f 56% 56.6%,
+      #e4d8bd 56.6% 61%, #17130f 61% 61.6%, #5f9184 61.6% 70%, #17130f 70% 70.6%,
+      #b9764f 70.6% 77%, #17130f 77% 77.6%, #e4d8bd 77.6% 82%, #17130f 82% 82.6%,
+      #3f6a8f 82.6% 91%, #17130f 91% 91.6%, #c9a657 91.6% 100%)
+    0 0 / 19em 100%;
 }
 
 .terminal::-webkit-scrollbar {
@@ -188,8 +214,19 @@ body,
 
 @media (max-width: 767px) {
   .terminal {
+    --pad-y: 0.7em;
+    --pad-x: 0.9em;
     font-size: 26px;
-    padding: 0.6em 0.8em;
+    line-height: 1.38;
+  }
+
+  /* At this width a name column costs a third of the screen. */
+  .term-row.term-stack {
+    display: block;
+  }
+
+  .term-stack .term-name {
+    display: block;
   }
 
   .nameplate {
@@ -223,8 +260,8 @@ body,
 }
 
 .term-echo {
-  margin-top: 0.8em;
-  font-weight: 600;
+  margin-top: 1em;
+  color: var(--text-dim);
 }
 
 .term-prompt {
@@ -232,7 +269,7 @@ body,
 }
 
 .term-dim {
-  color: var(--phosphor-dim);
+  color: var(--text-dim);
 }
 
 .term-error {
@@ -252,7 +289,6 @@ body,
   background: none;
   color: var(--amber);
   font: inherit;
-  text-shadow: inherit;
   text-align: left;
   text-decoration: none;
 }
@@ -261,14 +297,14 @@ button.term-name,
 a.term-name {
   cursor: pointer;
   text-decoration: underline;
-  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
 }
 
 button.term-name:hover,
 a.term-name:hover {
   background: var(--amber);
   color: var(--glass);
-  text-shadow: none;
 }
 
 .term-input {
@@ -284,10 +320,9 @@ a.term-name:hover {
   border: none;
   outline: none;
   background: none;
-  color: var(--phosphor);
-  caret-color: var(--phosphor);
+  color: var(--text);
+  caret-color: var(--amber);
   font: inherit;
-  text-shadow: inherit;
 }
 
 /* Sits over the canvas while it loads and warms up, then fades to show it. */
@@ -300,7 +335,7 @@ a.term-name:hover {
   justify-content: center;
   padding: 0 24px;
   background: var(--glass);
-  color: var(--phosphor);
+  color: var(--text);
   font: 400 16px/1.6 var(--mono);
   transition: opacity 0.4s ease, visibility 0s linear 0.4s;
 }
@@ -325,7 +360,7 @@ a.term-name:hover {
 }
 
 .boot-ok {
-  color: var(--phosphor-dim);
+  color: var(--text-dim);
 }
 
 .boot-progress {

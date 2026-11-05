@@ -16,10 +16,16 @@ useGLTF.setDecoderPath('/draco/')
 
 const Experience = lazy(() => import('./Experience.jsx'))
 
+// Lighting sliders, in dev only: this branch drops out of a production build.
+const MoodPanel = import.meta.env.DEV ? lazy(() => import('./MoodPanel.jsx')) : null
+
 const root = ReactDOM.createRoot(document.querySelector('#root'))
 
 // A long session shouldn't grow the terminal's DOM forever.
 const MAX_LINES = 200
+
+// How long the sky stays on the sunset before night takes over.
+const SUNSET_MS = 5000
 
 function App() {
     // A live third-party iframe is the single worst thing for frame rate here:
@@ -34,19 +40,22 @@ function App() {
     const [zoomTrigger, setZoomTrigger] = useState(0)
     const [isZoomed, setIsZoomed] = useState(false)
     const [night, setNight] = useState(false)
+    // A counter, like zoomTrigger: each increment plays the sunset once.
+    const [sunset, setSunset] = useState(0)
 
     // The page's own text sits on the sky, so it has to follow the mood too.
     useEffect(() => {
         document.documentElement.dataset.mood = night ? 'night' : 'day'
-        document.querySelector('meta[name="theme-color"]').content = night ? '#1d2440' : '#9db4b8'
+        document.querySelector('meta[name="theme-color"]').content = night ? '#0d1230' : '#8ea6b2'
     }, [night])
 
     // A command issued from the room, waiting for the camera to arrive.
     const queuedCommand = useRef(null)
+    const nightfall = useRef(null)
     const analytics = useRef(null)
 
-    // Pixel ratio is the biggest single GPU lever here: every pass (scene,
-    // reflector, bloom, noise, vignette) scales with it, and a Retina laptop
+    // Pixel ratio is the biggest single GPU lever here: everything scales with
+    // it, and a Retina laptop
     // at its native 2x pushes 4x the pixels of 1x. Start at a middle ground
     // and let <PerformanceMonitor> below move it: up to native on machines
     // that hold the refresh rate, down to 1 on ones (e.g. a MacBook Air) that
@@ -79,7 +88,7 @@ function App() {
     }
 
     const runAtMonitor = (input) => {
-        const { lines: output, effect } = execute(input)
+        const { lines: output, effect } = execute(input, { night })
 
         analytics.current?.event({ category: 'Terminal', action: 'Command', label: commandName(input) })
 
@@ -95,6 +104,13 @@ function App() {
         setLines((previous) => [...previous, { kind: 'input', text: input }, ...output].slice(-MAX_LINES))
         if (effect?.open) setIframeSrc(effect.open)
         if (effect?.night !== undefined) setNight(effect.night)
+        // Back out to the room: from the monitor there's no sky to watch.
+        if (effect?.sunset) {
+            handleResetZoom()
+            setSunset((previous) => previous + 1)
+            clearTimeout(nightfall.current)
+            nightfall.current = setTimeout(() => setNight(true), SUNSET_MS)
+        }
         if (effect?.url) window.open(effect.url, '_blank', 'noopener,noreferrer')
     }
 
@@ -133,12 +149,16 @@ function App() {
     return (
         <>
         <Boot ready={sceneReady} />
+        {MoodPanel && <Suspense fallback={null}><MoodPanel /></Suspense>}
         <header className={isZoomed ? 'nameplate hidden' : 'nameplate'}>
             <h1>Adnaan Bheda</h1>
             <p>Backend engineer</p>
         </header>
         {!isZoomed && (
-            <button type="button" className="mood-toggle" onClick={() => setNight(!night)}>
+            <button type="button" className="mood-toggle" onClick={() => {
+                clearTimeout(nightfall.current)
+                setNight(!night)
+            }}>
                 {night ? 'day' : 'night'}
             </button>
         )}
@@ -150,11 +170,11 @@ function App() {
         <Canvas
             className="r3f"
             dpr={dpr}
-            // Everything goes through EffectComposer's own render targets, so
-            // MSAA on the default framebuffer only ever antialiases the final
-            // fullscreen quad - pure cost. The composer handles AA instead
-            // (see multisampling in Experience.jsx).
-            gl={{ antialias: false, stencil: false }}
+            // Straight to the screen, no post-processing: the painted sky and
+            // the lamp's sprite do what bloom used to, for nothing per frame.
+            // `flat` keeps colours as authored, with no tone mapping.
+            flat
+            gl={{ antialias: true, stencil: false }}
             // Parked at the monitor nothing in the scene needs to move, so
             // stop rendering and leave the whole device to the iframe. Demand
             // rather than never: a resize still has to redraw.
@@ -172,6 +192,8 @@ function App() {
                     <Experience
                         iframeSrc={iframeSrc}
                         night={night}
+                        sunset={sunset}
+                        onRoseClick={() => runCommand('rose')}
                         terminal={cameraAtMonitor && !iframeSrc
                             ? <Terminal lines={lines} onCommand={runCommand} />
                             : null}

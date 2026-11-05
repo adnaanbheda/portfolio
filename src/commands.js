@@ -4,9 +4,11 @@
 // execute() returns { lines, effect }:
 //   lines  - what to print. { kind: 'text', text, tone } or a two-column
 //            { kind: 'row', name, text, run | href }, where `run` makes the name
-//            a button that runs a command and `href` makes it a link.
+//            a button that runs a command and `href` makes it a link. `stack`
+//            puts long text under its name on phones.
 //   effect - optional: 'clear', 'exit', { open: src } to put a site on the
-//            monitor, { url } to open a new tab, or { night } to set the mood.
+//            monitor, { url } to open a new tab, { night } to set the mood, or
+//            { sunset: true } to play one.
 
 export const LINKS = {
     cv: '/cv.pdf',
@@ -40,8 +42,11 @@ const help = () => ({
         run('contact', 'where to find me'),
         run('cv', 'open my CV as a PDF'),
         run('youtube', APPS.youtube.about, 'open youtube'),
-        run('night', 'turn the lamp on'),
+        run('night', 'light the street lamp'),
         run('day', 'let the sun back in'),
+        run('sunset', 'watch one'),
+        run('rose', 'the one outside'),
+        run('sheep', 'draw me one', 'draw me a sheep'),
         run('clear', 'clear the screen'),
         run('exit', 'step back from the desk'),
         text(''),
@@ -72,9 +77,9 @@ const projects = () => ({
 
 const work = () => ({
     lines: [
-        { kind: 'row', name: 'atlassian', text: '2022-2025. Spam and abuse detection in Go and Rego, data residency for marketplace apps.' },
-        { kind: 'row', name: 'klinify', text: '2020-2022. Async APIs at 10K requests/sec, a FHIR terminology service, Kubernetes on AKS.' },
-        { kind: 'row', name: 'roado', text: '2020. OSRM routing on OpenStreetMap, RabbitMQ workers, Kubernetes on AWS.' },
+        { kind: 'row', stack: true, name: 'atlassian', text: '2022-2025. Spam and abuse detection, data residency for marketplace apps.' },
+        { kind: 'row', stack: true, name: 'klinify', text: '2020-2022. Async APIs at 10K requests/sec, a FHIR terminology service.' },
+        { kind: 'row', stack: true, name: 'roado', text: '2020. Routing on OpenStreetMap, Kubernetes on AWS.' },
     ],
 })
 
@@ -94,6 +99,40 @@ const contact = () => ({
         link('github', 'github.com/adnaanbheda', LINKS.github),
     ],
 })
+
+// Three holes, for air.
+const SHEEP_BOX = [
+    '     ____________',
+    '    /  o   o   o /|',
+    '   /___________/ |',
+    '   |           | |',
+    '   |           | /',
+    '   |___________|/',
+]
+
+const sheep = () => ({
+    lines: [...SHEEP_BOX.map((row) => text(row)), text(''), text('The sheep is inside.')],
+})
+
+const rose = () => ({
+    lines: [
+        text('One rose, under glass.'),
+        text('It needs more looking after than any server I have run.'),
+    ],
+})
+
+let sunsetsWatched = 0
+
+const sunset = ({ night }) => {
+    if (night) {
+        return { lines: [text('The sun has already gone. It comes back with day.', 'dim'), run('day', 'bring it back')] }
+    }
+    sunsetsWatched += 1
+    return {
+        lines: [text(sunsetsWatched === 1 ? 'Your first sunset here.' : `Sunset number ${sunsetsWatched}.`, 'dim')],
+        effect: { sunset: true },
+    }
+}
 
 const opener = (name) => ({
     lines: [link(name, `opening ${name}`, LINKS[name])],
@@ -122,8 +161,11 @@ const COMMANDS = {
     cv: () => opener('cv'),
     linkedin: () => opener('linkedin'),
     github: () => opener('github'),
-    night: () => ({ lines: [text('lamp on', 'dim')], effect: { night: true } }),
-    day: () => ({ lines: [text('lamp off', 'dim')], effect: { night: false } }),
+    sunset,
+    rose,
+    sheep,
+    night: () => ({ lines: [text('lamp lit', 'dim')], effect: { night: true } }),
+    day: () => ({ lines: [text('lamp out', 'dim')], effect: { night: false } }),
     clear: () => ({ lines: [], effect: 'clear' }),
     exit: () => ({ lines: [], effect: 'exit' }),
 }
@@ -131,6 +173,8 @@ const COMMANDS = {
 // What people type out of habit. Left out of tab completion on purpose.
 const ALIASES = {
     '?': 'help',
+    'draw me a sheep': 'sheep',
+    'draw a sheep': 'sheep',
     localwrite: 'open localwrite',
     youtube: 'open youtube',
     ls: 'projects',
@@ -150,12 +194,12 @@ export const commandName = (input) => {
     return first in COMMANDS || first === 'open' ? first : 'unknown'
 }
 
-export function execute(input)
+export function execute(input, context = {})
 {
     const command = input.trim().replace(/\s+/g, ' ').toLowerCase()
     const name = ALIASES[command] ?? command
 
-    if (COMMANDS[name]) return COMMANDS[name]()
+    if (COMMANDS[name]) return COMMANDS[name](context)
     if (name === 'open' || name.startsWith('open ')) return open(name.slice(5))
     if (name === 'sudo' || name.startsWith('sudo ')) {
         return { lines: [text('sudo: this incident will be reported to Adnaan', 'error')] }

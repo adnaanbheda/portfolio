@@ -1,0 +1,63 @@
+{
+    "day": {
+        "fillLight": 0.5499999999999998,
+        "keyLight": 3,
+        "floorLight": 0.45,
+        "floorSaturation": 2.05,
+        "beams": 1,
+        "glassGlimmer": 0.1499999999999999,
+        "sunGlow": 0.27
+    },
+    "night": {
+        "fillLight": 0.8,
+        "keyLight": 0.47000000000000003,
+        "glassGlimmer": 0.64,
+        "lampLight": 2.5,
+        "lampRoomFill": 0.51,
+        "lampGlow": 1
+    },
+    "lightColours": {
+        "sky": "#fff1dc",
+        "ground": "#9c7a58",
+        "key": "#ffdcb0"
+    },
+    "planet": {
+        "ground": "#9caaec",
+        "stone": "#696d80"
+    },
+    "sky": {
+        "day": {
+            "wash": [
+                "#8ea6b2",
+                "#bcc9c4",
+                "#e6d6ba"
+            ],
+            "blooms": [
+                "rgba(238, 226, 204, 0.09)",
+                "rgba(116, 142, 158, 0.08)"
+            ]
+        },
+        "sunset": {
+            "wash": [
+                "#5f6488",
+                "#c98f80",
+                "#f0bd86"
+            ],
+            "blooms": [
+                "rgba(250, 190, 140, 0.1)",
+                "rgba(110, 88, 130, 0.09)"
+            ]
+        },
+        "night": {
+            "wash": [
+                "#0d1230",
+                "#17214a",
+                "#2b3460"
+            ],
+            "blooms": [
+                "rgba(64, 84, 130, 0.08)",
+                "rgba(8, 10, 30, 0.12)"
+            ]
+        }
+    }
+}

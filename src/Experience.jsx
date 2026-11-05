@@ -1,17 +1,20 @@
-import { CameraControls, ContactShadows } from '@react-three/drei'
+import { CameraControls } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
-import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Vector3 } from 'three'
+import Backdrop from './Backdrop'
 import DeskProps from './DeskProps'
-import Lamp from './Lamplight'
-import Level from './Level'
+import LampPost from './LampPost'
 import Lighting from './Lighting'
 import Monitor from './Monitor'
+import Planet from './Planet'
+import Room from './Room'
+import Rose from './Rose'
 import SnakePlant from './SnakePlant'
 import Speakers from './Speakers'
 import StandingDesk from './StandingDesk'
 import Stars from './Stars'
+import CameraDrift from './CameraDrift'
 import SunPatch from './SunPatch'
 import WindowView from './WindowView'
 
@@ -91,12 +94,11 @@ function whenFramesStable(onStable)
     return () => cancelAnimationFrame(frame)
 }
 
-export default function Experience({ iframeSrc, terminal, night, zoomTrigger, onResetZoom, onEscape, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed })
+export default function Experience({ iframeSrc, terminal, night, sunset, onRoseClick, zoomTrigger, onResetZoom, onEscape, onZoomComplete, onPosterClick, onSceneReady, onIntroComplete, isZoomed })
 {
     const meshRef = useRef()
     const cameraControlsRef = useRef()
     const { camera, size } = useThree()
-    const dpr = useThree((state) => state.viewport.dpr)
 
     // Parent callbacks are fresh closures every render, but they get called
     // from listeners set up once. Always go through the latest.
@@ -104,6 +106,7 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
     callbacks.current = { onResetZoom, onEscape, onZoomComplete, onSceneReady, onIntroComplete }
 
     const cancelZoomWatch = useRef(null)
+    const [introDone, setIntroDone] = useState(false)
 
     // Registered once. This used to be a bare addEventListener in the render
     // body, which stacked one more listener on every re-render (every iframe
@@ -155,6 +158,7 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
             startTimer = setTimeout(() => {
                 cancelSettled = whenSettled(controls, 6000, () => {
                     controls.smoothTime = defaultSmoothTime
+                    setIntroDone(true)
                     callbacks.current.onIntroComplete?.()
                 })
                 controls.reset(true)
@@ -190,10 +194,10 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
     
     // Responsive logic
     const isMobile = size.width < 768
-    const sceneScale = isMobile ? 0.55 : 0.9
+    const sceneScale = isMobile ? 0.5 : 0.8
     // Centres the room on the point the camera orbits. On a phone it only
     // needs lifting clear of the command bar.
-    const roomOffset = isMobile ? [0, 0.5, 0] : [-1.55, 0.3, -1.15]
+    const roomOffset = isMobile ? [0, 0.9, 0] : [-1.25, 0.72, -0.94]
     const scenePosition = isMobile ? [0, -0.6, 0] : [0, 0, 0]
     
     const moveToMonitor = () => {
@@ -202,7 +206,7 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
         cameraControlsRef.current.enabled = false;
 
         cancelZoomWatch.current?.()
-        cancelZoomWatch.current = whenSettled(cameraControlsRef.current, 2500, () => {
+        cancelZoomWatch.current = whenSettled(cameraControlsRef.current, 3500, () => {
             callbacks.current.onZoomComplete?.()
         })
     }
@@ -225,21 +229,13 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
 
     return <>
 
-        {/* multisampling defaults to 8x MSAA on half-float targets, which is
-            heavy on integrated GPUs. At a high pixel ratio the edges are
-            already fine (and Noise hides the rest), so only pay for 4x when
-            the PerformanceMonitor in index.jsx has dropped dpr down. */}
-        <EffectComposer multisampling={dpr > 1.25 ? 0 : 4}>
-            <Bloom luminanceThreshold={0.92} luminanceSmoothing={0.1} intensity={0.5} height={300} />
-            <Noise opacity={0.02} />
-            <Vignette eskil={false} offset={0.3} darkness={0.35} />
-        </EffectComposer>
-
+        <Backdrop night={night} sunset={sunset} />
         <Lighting night={night} />
         <Stars night={night} />
 
         <CameraControls
             ref={cameraControlsRef}
+            smoothTime={0.55}
             minAzimuthAngle={-Math.PI /2}
             maxAzimuthAngle={Math.PI / 8}
             minPolarAngle={0.5}
@@ -248,6 +244,7 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
             polar={ [ - 0.3, 0 ] }
             azimuth={ [ -2, 0.75 ] }
             infinityDolly={true} />
+        <CameraDrift controlsRef={cameraControlsRef} active={introDone && !isZoomed} />
 
         {/* Everything spatial lives at SCENE_SCALE_FACTOR x the scale the whole
             scene was originally authored/tuned at - see the constant's comment.
@@ -257,31 +254,22 @@ export default function Experience({ iframeSrc, terminal, night, zoomTrigger, on
             <group position={roomOffset}>
             <group global rotation={ [ 0, 1, 0 ] }>
                     <group onDoubleClick={resetView} scale={sceneScale} position={scenePosition}>
-                        <Level scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
+                        <Room scale={0.3} rotation={[0, Math.PI+0.5, 0]} position={ isMobile ? [0, -1, 0] : [0, -1.4, 2] }>
                             <SunPatch night={night} />
                             <WindowView night={night} />
-                            <Lamp on={night} position={[0, 3.06, 0]} rotation={[0, -1.5, 0]} scale={1.6} />
+                            <Planet radius={isMobile ? 9.4 : 13} />
+                            <LampPost on={night} position={isMobile ? [-1.1, 0, 5.3] : [-3.3, 0, 5.3]} />
+                            <Rose onClick={onRoseClick} position={[5.5, 0, 2.6]} />
                             <StandingDesk position={[1, 0.6, -2.4]} rotation={[0, 1.6, 0]} scale={3.5} >
                                 <SnakePlant position={[0.1, 1.05, 0.7]} scale={0.4} />
                                 <Monitor ref={meshRef} iframeSrc={iframeSrc} terminal={terminal} onPosterClick={onPosterClick} position={[0, 0.87, 0]} rotation={[0, Math.PI / 2, 0]} scale={1.5} />
                                 <Speakers position={[0, 1.05, -0.45]} rotation={[0,-Math.PI / 2, 0]} />
                                 <DeskProps />
                             </StandingDesk>
-                        </Level>
+                        </Room>
                     </group>
 
             </group>
-
-            {/* Everything casting onto this is static (the lamp is out of the
-                scene when this renders), so render the shadow once instead of
-                re-rendering the whole scene plus two blur passes every frame. */}
-            <ContactShadows
-                frames={ 1 }
-                position-y={ - 1.4 }
-                opacity={ 0.3 }
-                scale={ 10 }
-                blur={ 3.2 }
-            />
             </group>
         </group>
 

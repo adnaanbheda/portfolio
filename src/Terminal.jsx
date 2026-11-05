@@ -9,7 +9,7 @@ function Line({ line, onCommand })
 
     if (line.kind === 'row') {
         return (
-            <p className="term-line term-row">
+            <p className={`term-line term-row${line.stack ? ' term-stack' : ''}`}>
                 {line.run && <button type="button" className="term-name" onClick={() => onCommand(line.run)}>{line.name}</button>}
                 {line.href && <a className="term-name" href={line.href} target="_blank" rel="noopener noreferrer">{line.name}</a>}
                 {!line.run && !line.href && <span className="term-name">{line.name}</span>}
@@ -36,10 +36,18 @@ export default function Terminal({ lines, onCommand })
         [lines]
     )
 
-    // scrollTop, not scrollIntoView: that also scrolls every ancestor, and the
-    // ancestors here are the 3D-transformed Html wrappers.
+    // Bring the latest command to the top of the screen, so an answer taller than
+    // the monitor opens at its start. When it all fits, the browser clamps this
+    // to the bottom, which keeps the prompt in view. scrollTop, not
+    // scrollIntoView: that also scrolls every ancestor, and the ancestors here
+    // are the 3D-transformed Html wrappers.
     useLayoutEffect(() => {
-        scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight
+        const scroller = scrollerRef.current
+        const commands = scroller.querySelectorAll('.term-echo')
+        const latest = commands[commands.length - 1]
+        if (!latest) return
+        const belowBand = parseFloat(getComputedStyle(scroller).fontSize) * 0.8
+        scroller.scrollTop = latest.offsetTop - belowBand
     }, [lines])
 
     const focusInput = () => inputRef.current?.focus({ preventScroll: true })
