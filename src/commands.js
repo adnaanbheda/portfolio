@@ -57,7 +57,7 @@ const help = () => ({
 const whoami = () => ({
     lines: [
         text('Adnaan Bheda'),
-        text('Backend engineer. I have stopped spam at Atlassian, scaled'),
+        text('Software engineer. I have stopped spam at Atlassian, scaled'),
         text('healthcare APIs at Klinify and run routing at Roado.'),
         text(''),
         run('projects', 'see what I have built'),

@@ -153,7 +153,7 @@ function App() {
         {MoodPanel && <Suspense fallback={null}><MoodPanel /></Suspense>}
         <header className={isZoomed || atDesk ? 'nameplate hidden' : 'nameplate'}>
             <h1>Adnaan Bheda</h1>
-            <p>Backend engineer</p>
+            <p>Software Engineer</p>
         </header>
         {!isZoomed && (
             <button type="button" className="mood-toggle" onClick={() => {
