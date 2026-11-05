@@ -70,7 +70,9 @@ function drawSurface()
     context.fillStyle = PAPER
     context.fillRect(0, 0, 1024, 1024)
 
-    // Broad, faint tonal drifts, then a fine dry grain.
+    // Broad, faint tonal drifts, then a fine dry grain. The texture repeats, so a
+    // drift crossing an edge carries on from the opposite one: cut off there, it
+    // left a step in the tone that ran round the planet as a ring.
     for (let i = 0; i < 30; i++) {
         const x = Math.random() * 1024
         const y = Math.random() * 1024
@@ -80,8 +82,14 @@ function drawSurface()
         drift.addColorStop(0, `rgba(${tone}, 0.1)`)
         drift.addColorStop(1, `rgba(${tone}, 0)`)
         context.fillStyle = drift
-        context.fillRect(x - radius, y - radius, radius * 2, radius * 2)
+        for (const shiftX of [-1024, 0, 1024]) {
+            for (const shiftY of [-1024, 0, 1024]) {
+                context.setTransform(1, 0, 0, 1, shiftX, shiftY)
+                context.fillRect(x - radius, y - radius, radius * 2, radius * 2)
+            }
+        }
     }
+    context.resetTransform()
 
     fillGrain(context, 1024, 1024, { dark: 'rgba(58, 58, 58, 0.14)', light: 'rgba(240, 240, 240, 0.12)', dots: 9000 })
 

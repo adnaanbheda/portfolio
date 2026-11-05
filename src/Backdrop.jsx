@@ -12,20 +12,28 @@ const smallScreen = () => window.innerWidth < 768
 
 function paintWash({ wash, blooms })
 {
+    // Painted in the screen's shape, because the quad fills the screen: a square
+    // wash stretched its grain into streaks on a tall phone. Same pixel count
+    // either way, so this costs no more.
     const SIZE = smallScreen() ? 512 : 1024
+    const aspect = window.innerWidth / window.innerHeight
+    const width = Math.round(SIZE * Math.sqrt(aspect))
+    const height = Math.round(SIZE / Math.sqrt(aspect))
+
     const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = SIZE
+    canvas.width = width
+    canvas.height = height
     const context = canvas.getContext('2d')
 
-    const gradient = context.createLinearGradient(0, 0, 0, SIZE)
+    const gradient = context.createLinearGradient(0, 0, 0, height)
     wash.forEach((color, index) => gradient.addColorStop(index / (wash.length - 1), color))
     context.fillStyle = gradient
-    context.fillRect(0, 0, SIZE, SIZE)
+    context.fillRect(0, 0, width, height)
 
     // Pigment pooling: wide, faint blooms laid over one another.
     for (let i = 0; i < 44; i++) {
-        const x = Math.random() * SIZE
-        const y = Math.random() * SIZE
+        const x = Math.random() * width
+        const y = Math.random() * height
         const radius = (0.1 + Math.random() * 0.25) * SIZE
         const bloom = context.createRadialGradient(x, y, 0, x, y, radius)
         bloom.addColorStop(0, blooms[i % 2])
@@ -35,7 +43,7 @@ function paintWash({ wash, blooms })
     }
 
     // Paper tooth.
-    fillGrain(context, SIZE, SIZE, { dark: 'rgba(0, 0, 0, 0.03)', light: 'rgba(255, 255, 255, 0.03)' })
+    fillGrain(context, width, height, { dark: 'rgba(0, 0, 0, 0.03)', light: 'rgba(255, 255, 255, 0.03)' })
 
     const texture = new CanvasTexture(canvas)
     texture.colorSpace = SRGBColorSpace
